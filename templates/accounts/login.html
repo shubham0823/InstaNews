@@ -1,101 +1,553 @@
 {% extends "base.html" %}
+{% load static %}
 
-{% block title %}Sign In - NewsHub{% endblock %}
+{% block title %}Sign In - InstaNews{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Modern Auth Page Styles */
+    .auth-wrapper {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem 1rem;
+        background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 50%, #f0fdfa 100%);
+    }
+
+    .dark .auth-wrapper {
+        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+    }
+
+    .auth-card {
+        width: 100%;
+        max-width: 440px;
+        background: white;
+        border-radius: 24px;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
+        padding: 2.5rem;
+        animation: slideUp 0.5s ease-out;
+    }
+
+    .dark .auth-card {
+        background: #1f2937;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    }
+
+    @keyframes slideUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    /* Logo */
+    .auth-logo {
+        text-align: center;
+        margin-bottom: 1.5rem;
+    }
+
+    .auth-logo-icon {
+        width: 56px;
+        height: 56px;
+        background: linear-gradient(135deg, #2563eb, #7c3aed);
+        border-radius: 16px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 1rem;
+        animation: float 3s ease-in-out infinite;
+    }
+
+    @keyframes float {
+
+        0%,
+        100% {
+            transform: translateY(0px);
+        }
+
+        50% {
+            transform: translateY(-6px);
+        }
+    }
+
+    .auth-logo-text {
+        font-size: 1.75rem;
+        font-weight: 800;
+        color: #1f2937;
+        font-family: 'Inter', sans-serif;
+    }
+
+    .dark .auth-logo-text {
+        color: #f9fafb;
+    }
+
+    /* Header */
+    .auth-header {
+        text-align: center;
+        margin-bottom: 2rem;
+    }
+
+    .auth-title {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #1f2937;
+        margin-bottom: 0.5rem;
+    }
+
+    .dark .auth-title {
+        color: #f9fafb;
+    }
+
+    .auth-subtitle {
+        color: #6b7280;
+        font-size: 0.95rem;
+    }
+
+    .auth-subtitle a {
+        color: #2563eb;
+        font-weight: 500;
+        text-decoration: none;
+    }
+
+    .auth-subtitle a:hover {
+        text-decoration: underline;
+    }
+
+    /* Social Buttons */
+    .auth-social {
+        display: flex;
+        gap: 0.75rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .auth-social-btn {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        padding: 0.75rem;
+        border: 1px solid #e5e7eb;
+        border-radius: 12px;
+        background: white;
+        color: #374151;
+        font-size: 0.875rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .dark .auth-social-btn {
+        background: #374151;
+        border-color: #4b5563;
+        color: #e5e7eb;
+    }
+
+    .auth-social-btn:hover {
+        border-color: #2563eb;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(37, 99, 235, 0.15);
+    }
+
+    .auth-social-icon {
+        width: 18px;
+        height: 18px;
+    }
+
+    /* Divider */
+    .auth-divider {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        margin: 1.5rem 0;
+        color: #9ca3af;
+        font-size: 0.875rem;
+    }
+
+    .auth-divider::before,
+    .auth-divider::after {
+        content: '';
+        flex: 1;
+        height: 1px;
+        background: #e5e7eb;
+    }
+
+    .dark .auth-divider::before,
+    .dark .auth-divider::after {
+        background: #4b5563;
+    }
+
+    /* Form Fields */
+    .auth-field {
+        margin-bottom: 1.25rem;
+    }
+
+    .auth-label {
+        display: block;
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: #374151;
+        margin-bottom: 0.5rem;
+    }
+
+    .dark .auth-label {
+        color: #d1d5db;
+    }
+
+    .auth-input-wrapper {
+        position: relative;
+    }
+
+    .auth-input {
+        width: 100%;
+        padding: 0.875rem 1rem;
+        border: 2px solid #e5e7eb;
+        border-radius: 12px;
+        font-size: 1rem;
+        color: #1f2937;
+        background: white;
+        transition: all 0.2s;
+        outline: none;
+    }
+
+    .dark .auth-input {
+        background: #374151;
+        border-color: #4b5563;
+        color: #f9fafb;
+    }
+
+    .auth-input::placeholder {
+        color: #9ca3af;
+    }
+
+    .auth-input:focus {
+        border-color: #2563eb;
+        box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
+    }
+
+    .auth-input.error {
+        border-color: #ef4444;
+        animation: shake 0.3s ease;
+    }
+
+    @keyframes shake {
+
+        0%,
+        100% {
+            transform: translateX(0);
+        }
+
+        25% {
+            transform: translateX(-5px);
+        }
+
+        75% {
+            transform: translateX(5px);
+        }
+    }
+
+    .auth-input-password {
+        padding-right: 3rem;
+    }
+
+    /* Password Toggle */
+    .auth-password-toggle {
+        position: absolute;
+        right: 1rem;
+        top: 50%;
+        transform: translateY(-50%);
+        background: none;
+        border: none;
+        cursor: pointer;
+        color: #9ca3af;
+        padding: 0.25rem;
+        display: flex;
+        transition: color 0.2s;
+    }
+
+    .auth-password-toggle:hover {
+        color: #6b7280;
+    }
+
+    /* Error Message */
+    .auth-error {
+        display: flex;
+        align-items: center;
+        gap: 0.375rem;
+        margin-top: 0.5rem;
+        font-size: 0.8rem;
+        color: #ef4444;
+    }
+
+    /* Remember & Forgot */
+    .auth-options {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin: 1rem 0;
+    }
+
+    .auth-checkbox-wrapper {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .auth-checkbox {
+        width: 18px;
+        height: 18px;
+        accent-color: #2563eb;
+    }
+
+    .auth-checkbox-label {
+        font-size: 0.875rem;
+        color: #6b7280;
+    }
+
+    .auth-forgot {
+        font-size: 0.875rem;
+        color: #2563eb;
+        text-decoration: none;
+        font-weight: 500;
+    }
+
+    .auth-forgot:hover {
+        text-decoration: underline;
+    }
+
+    /* Submit Button */
+    .auth-submit {
+        width: 100%;
+        padding: 1rem;
+        background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+        color: white;
+        font-size: 1rem;
+        font-weight: 600;
+        border: none;
+        border-radius: 12px;
+        cursor: pointer;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        margin-top: 1.5rem;
+    }
+
+    .auth-submit:hover:not(:disabled) {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(37, 99, 235, 0.4);
+    }
+
+    .auth-submit:disabled {
+        opacity: 0.7;
+        cursor: not-allowed;
+    }
+
+    .auth-spinner {
+        width: 20px;
+        height: 20px;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        border-top-color: white;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+        to {
+            transform: rotate(360deg);
+        }
+    }
+
+    /* Footer */
+    .auth-footer {
+        text-align: center;
+        margin-top: 1.5rem;
+        font-size: 0.8rem;
+        color: #9ca3af;
+    }
+
+    .auth-footer a {
+        color: #2563eb;
+        text-decoration: none;
+    }
+
+    .auth-footer a:hover {
+        text-decoration: underline;
+    }
+
+    /* Alert */
+    .auth-alert {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.75rem;
+        padding: 1rem;
+        border-radius: 12px;
+        margin-bottom: 1.5rem;
+        background: #fef2f2;
+        border: 1px solid #fecaca;
+        color: #991b1b;
+    }
+
+    .dark .auth-alert {
+        background: rgba(239, 68, 68, 0.1);
+        border-color: rgba(239, 68, 68, 0.3);
+        color: #fca5a5;
+    }
+</style>
+{% endblock %}
 
 {% block content %}
-<div class="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-    <div class="max-w-md w-full space-y-8">
-        <div>
-            <h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900">
-                Sign in to your account
-            </h2>
-            <p class="mt-2 text-center text-sm text-gray-600">
-                Or
-                <a href="{% url 'accounts:register' %}" class="font-medium text-blue-600 hover:text-blue-500">
-                    create a new account
-                </a>
+<div class="auth-wrapper">
+    <div class="auth-card">
+        <!-- Logo -->
+        <div class="auth-logo">
+            <div class="auth-logo-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none"
+                    stroke="white" stroke-width="2">
+                    <path
+                        d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2Zm0 0a2 2 0 0 1-2-2v-9c0-1.1.9-2 2-2h2">
+                    </path>
+                    <path d="M18 14h-8"></path>
+                    <path d="M15 18h-5"></path>
+                    <path d="M10 6h8v4h-8V6Z"></path>
+                </svg>
+            </div>
+            <div class="auth-logo-text">InstaNews</div>
+        </div>
+
+        <!-- Header -->
+        <div class="auth-header">
+            <h1 class="auth-title">Welcome back</h1>
+            <p class="auth-subtitle">
+                Don't have an account? <a href="{% url 'accounts:register' %}">Sign up free</a>
             </p>
         </div>
-        
-        <form class="mt-8 space-y-6" method="POST">
-            {% csrf_token %}
-            
-            {% if form.non_field_errors %}
-            <div class="rounded-md bg-red-50 p-4">
-                <div class="flex">
-                    <div class="flex-shrink-0">
-                        <svg class="h-5 w-5 text-red-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
-                        </svg>
-                    </div>
-                    <div class="ml-3">
-                        <h3 class="text-sm font-medium text-red-800">
-                            {% for error in form.non_field_errors %}
-                            {{ error }}
-                            {% endfor %}
-                        </h3>
-                    </div>
-                </div>
-            </div>
-            {% endif %}
-            
-            <div class="rounded-md shadow-sm -space-y-px">
-                <div>
-                    <label for="{{ form.username.id_for_label }}" class="sr-only">Username</label>
-                    {{ form.username }}
-                    {% if form.username.errors %}
-                    <p class="mt-2 text-sm text-red-600">{{ form.username.errors.0 }}</p>
-                    {% endif %}
-                </div>
-                
-                <div class="mt-4">
-                    <label for="{{ form.password.id_for_label }}" class="sr-only">Password</label>
-                    {{ form.password }}
-                    {% if form.password.errors %}
-                    <p class="mt-2 text-sm text-red-600">{{ form.password.errors.0 }}</p>
-                    {% endif %}
-                </div>
-            </div>
-            
-            <div class="flex items-center justify-between">
-                <div class="text-sm">
-                    <a href="{% url 'accounts:password_reset' %}" class="font-medium text-blue-600 hover:text-blue-500">
-                        Forgot your password?
-                    </a>
-                </div>
-            </div>
-            
+
+        <!-- Social Auth -->
+        <div class="auth-social">
+            <button type="button" class="auth-social-btn" onclick="alert('Google OAuth coming soon!')">
+                <svg class="auth-social-icon" viewBox="0 0 24 24">
+                    <path fill="#4285F4"
+                        d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                    <path fill="#34A853"
+                        d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                    <path fill="#FBBC05"
+                        d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
+                    <path fill="#EA4335"
+                        d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
+                </svg>
+                Google
+            </button>
+            <button type="button" class="auth-social-btn" onclick="alert('GitHub OAuth coming soon!')">
+                <svg class="auth-social-icon" viewBox="0 0 24 24" fill="currentColor">
+                    <path
+                        d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" />
+                </svg>
+                GitHub
+            </button>
+        </div>
+
+        <!-- Divider -->
+        <div class="auth-divider">or</div>
+
+        <!-- Error Messages -->
+        {% if form.non_field_errors %}
+        <div class="auth-alert">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd"
+                    d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                    clip-rule="evenodd" />
+            </svg>
             <div>
-                <button type="submit"
-                        class="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                    <span class="absolute left-0 inset-y-0 flex items-center pl-3">
-                        <svg class="h-5 w-5 text-blue-500 group-hover:text-blue-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                            <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd" />
-                        </svg>
-                    </span>
-                    Sign in
-                </button>
+                {% for error in form.non_field_errors %}{{ error }}{% endfor %}
             </div>
+        </div>
+        {% endif %}
+
+        <!-- Login Form -->
+        <form method="POST" id="login-form">
+            {% csrf_token %}
+
+            <!-- Username -->
+            <div class="auth-field">
+                <label class="auth-label" for="id_username">Username</label>
+                <input type="text" name="username" id="id_username"
+                    class="auth-input {% if form.username.errors %}error{% endif %}" placeholder="Enter your username"
+                    value="{{ form.username.value|default:'' }}" required>
+                {% if form.username.errors %}
+                <div class="auth-error">{{ form.username.errors.0 }}</div>
+                {% endif %}
+            </div>
+
+            <!-- Password -->
+            <div class="auth-field">
+                <label class="auth-label" for="id_password">Password</label>
+                <div class="auth-input-wrapper">
+                    <input type="password" name="password" id="id_password"
+                        class="auth-input auth-input-password {% if form.password.errors %}error{% endif %}"
+                        placeholder="Enter your password" required>
+                    <button type="button" class="auth-password-toggle" onclick="togglePassword()">
+                        <svg id="eye-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                            <circle cx="12" cy="12" r="3"></circle>
+                        </svg>
+                    </button>
+                </div>
+                {% if form.password.errors %}
+                <div class="auth-error">{{ form.password.errors.0 }}</div>
+                {% endif %}
+            </div>
+
+            <!-- Options -->
+            <div class="auth-options">
+                <div class="auth-checkbox-wrapper">
+                    <input type="checkbox" id="remember" class="auth-checkbox">
+                    <label for="remember" class="auth-checkbox-label">Remember me</label>
+                </div>
+                <a href="{% url 'accounts:password_reset' %}" class="auth-forgot">Forgot password?</a>
+            </div>
+
+            <!-- Submit -->
+            <button type="submit" class="auth-submit" id="submit-btn">
+                <span id="btn-text">Sign in</span>
+                <span id="btn-spinner" class="auth-spinner" style="display: none;"></span>
+            </button>
         </form>
+
+        <!-- Footer -->
+        <div class="auth-footer">
+            By signing in, you agree to our <a href="#">Terms</a> and <a href="#">Privacy Policy</a>
+        </div>
     </div>
 </div>
 {% endblock %}
 
-{% block extra_css %}
-<style>
-    /* Style form inputs */
-    input[type="text"],
-    input[type="password"] {
-        @apply w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500;
+{% block extra_js %}
+<script>
+    function togglePassword() {
+        const input = document.getElementById('id_password');
+        const icon = document.getElementById('eye-icon');
+        if (input.type === 'password') {
+            input.type = 'text';
+            icon.innerHTML = '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line>';
+        } else {
+            input.type = 'password';
+            icon.innerHTML = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle>';
+        }
     }
-    
-    /* Style form errors */
-    .errorlist {
-        @apply list-none p-0 m-0;
-    }
-    
-    .errorlist li {
-        @apply text-red-500 text-xs mt-1;
-    }
-</style>
-{% endblock %} 
+
+    document.getElementById('login-form').addEventListener('submit', function () {
+        document.getElementById('submit-btn').disabled = true;
+        document.getElementById('btn-text').style.display = 'none';
+        document.getElementById('btn-spinner').style.display = 'block';
+    });
+</script>
+{% endblock %}

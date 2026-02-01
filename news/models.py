@@ -149,3 +149,31 @@ class Notification(models.Model):
 
     def __str__(self):
         return f"{self.actor.username} {self.notification_type}d your content"
+
+
+class UserInterest(models.Model):
+    """
+    Tracks user interests for personalized feed recommendations
+    """
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='interests')
+    
+    # Search history - list of search queries
+    search_keywords = models.JSONField(default=list, blank=True)
+    
+    # Sources the user has clicked on
+    clicked_sources = models.JSONField(default=list, blank=True)
+    
+    # Category preferences with weights (0.0 to 1.0)
+    category_weights = models.JSONField(default=dict, blank=True)
+    
+    # Timestamps
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.user.username}'s interests"
+
+    class Meta:
+        verbose_name = 'User Interest'
+        verbose_name_plural = 'User Interests'
+

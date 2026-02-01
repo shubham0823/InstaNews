@@ -1,0 +1,255 @@
+{% extends "base.html" %}
+
+{% block title %}{{ state.name }} News - InstaNews{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Skeleton Loader Animation */
+    .skeleton {
+        background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+        background-size: 200% 100%;
+        animation: skeleton-loading 1.5s infinite;
+    }
+
+    .dark .skeleton {
+        background: linear-gradient(90deg, #374151 25%, #4b5563 50%, #374151 75%);
+        background-size: 200% 100%;
+    }
+
+    @keyframes skeleton-loading {
+        0% {
+            background-position: 200% 0;
+        }
+
+        100% {
+            background-position: -200% 0;
+        }
+    }
+
+    .external-card {
+        transition: all 0.3s ease;
+    }
+
+    .external-card:hover {
+        transform: translateY(-5px);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 dark:bg-dark-bg">
+    <!-- Hero Header -->
+    <div class="bg-gradient-to-r from-orange-500 via-white to-green-600 p-1">
+        <div class="bg-white dark:bg-dark-bg">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+                <div class="flex items-center space-x-4 mb-4">
+                    <a href="{% url 'news:india_news_hub' %}"
+                        class="text-gray-500 hover:text-blue-600 transition-colors">
+                        <i class="fas fa-arrow-left mr-2"></i>Back to India
+                    </a>
+                </div>
+                <div class="flex items-center space-x-6">
+                    <div
+                        class="w-20 h-20 rounded-2xl bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center shadow-lg">
+                        <i class="fas fa-landmark text-white text-3xl"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-2">
+                            {{ state.name }}
+                        </h1>
+                        <div class="flex flex-wrap items-center gap-3 text-gray-600 dark:text-gray-400">
+                            {% if state.capital %}
+                            <span><i class="fas fa-building mr-1"></i> {{ state.capital }}</span>
+                            {% endif %}
+                            {% if state.region %}
+                            <span
+                                class="px-2 py-1 bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 rounded-full text-sm">
+                                {{ state.region }} India
+                            </span>
+                            {% endif %}
+                            <span class="flex items-center">
+                                <span class="w-2 h-2 bg-green-500 rounded-full mr-1 animate-pulse"></span>
+                                {{ news_count }} news found
+                            </span>
+                            {% if from_cache %}
+                            <span class="px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-600 text-xs rounded-full">
+                                <i class="fas fa-bolt mr-1"></i>Cached
+                            </span>
+                            {% endif %}
+                            <span
+                                class="px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 text-xs rounded-full">
+                                Source: {{ news_source|title }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- External News from API -->
+        {% if external_news %}
+        <div class="mb-12">
+            <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-6 flex items-center">
+                <i class="fas fa-globe mr-3 text-blue-500"></i>
+                Latest from {{ state.name }}
+                <span class="ml-3 px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-600 text-sm rounded-full">
+                    <i class="fas fa-rss mr-1"></i>Live
+                </span>
+            </h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {% for article in external_news %}
+                <article
+                    class="external-card bg-white dark:bg-dark-card rounded-2xl shadow-md overflow-hidden hover:shadow-xl">
+                    {% if article.image %}
+                    <img src="{{ article.image }}" alt="{{ article.title }}" class="w-full h-48 object-cover"
+                        onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                    <div
+                        class="w-full h-48 bg-gradient-to-br from-blue-500 to-purple-600 items-center justify-center hidden">
+                        <i class="fas fa-newspaper text-white text-4xl"></i>
+                    </div>
+                    {% else %}
+                    <div
+                        class="w-full h-48 bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+                        <i class="fas fa-newspaper text-white text-4xl"></i>
+                    </div>
+                    {% endif %}
+                    <div class="p-5">
+                        <div class="flex items-center justify-between mb-3">
+                            <span
+                                class="text-xs font-medium text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-2 py-1 rounded-full">
+                                {{ article.source }}
+                            </span>
+                            {% if article.published_at %}
+                            <span class="text-xs text-gray-500 dark:text-gray-400">
+                                {{ article.published_at|slice:":10" }}
+                            </span>
+                            {% endif %}
+                        </div>
+                        <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-2 line-clamp-2">
+                            {{ article.title }}
+                        </h3>
+                        <p class="text-gray-600 dark:text-gray-400 text-sm mb-4 line-clamp-3">
+                            {{ article.description|truncatewords:25 }}
+                        </p>
+                        <a href="{{ article.url }}" target="_blank" rel="noopener noreferrer"
+                            class="inline-flex items-center text-blue-600 hover:text-blue-700 text-sm font-medium">
+                            Read Full Article <i class="fas fa-external-link-alt ml-2"></i>
+                        </a>
+                    </div>
+                </article>
+                {% endfor %}
+            </div>
+        </div>
+        {% elif not api_success %}
+        <!-- Error State -->
+        <div
+            class="mb-12 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-2xl p-6">
+            <div class="flex items-center">
+                <i class="fas fa-exclamation-triangle text-yellow-500 text-2xl mr-4"></i>
+                <div>
+                    <h3 class="font-semibold text-yellow-800 dark:text-yellow-300">Unable to fetch live news</h3>
+                    <p class="text-yellow-600 dark:text-yellow-400 text-sm">Showing local news from our database
+                        instead.</p>
+                </div>
+                <a href="?refresh=1"
+                    class="ml-auto px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition-colors">
+                    <i class="fas fa-sync-alt mr-2"></i>Retry
+                </a>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Local News from Database -->
+        {% if local_news %}
+        <div class="mb-12">
+            <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-6 flex items-center">
+                <i class="fas fa-users mr-3 text-purple-500"></i>
+                Community News
+            </h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {% for news in local_news %}
+                <article
+                    class="external-card bg-white dark:bg-dark-card rounded-2xl shadow-md overflow-hidden hover:shadow-xl">
+                    {% if news.images.first %}
+                    <img src="{{ news.images.first.image.url }}" alt="{{ news.title }}"
+                        class="w-full h-48 object-cover">
+                    {% else %}
+                    <div
+                        class="w-full h-48 bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center">
+                        <i class="fas fa-newspaper text-white text-4xl"></i>
+                    </div>
+                    {% endif %}
+                    <div class="p-5">
+                        <div class="flex items-center mb-4">
+                            <a href="{% url 'news:user_profile' news.author.username %}">
+                                <img src="{{ news.author.profile.avatar.url }}" alt="{{ news.author.username }}"
+                                    class="w-10 h-10 rounded-full object-cover ring-2 ring-purple-500">
+                            </a>
+                            <div class="ml-3">
+                                <a href="{% url 'news:user_profile' news.author.username %}"
+                                    class="text-sm font-medium text-gray-900 dark:text-white hover:text-purple-600">
+                                    {{ news.author.username }}
+                                </a>
+                                <p class="text-xs text-gray-500 dark:text-gray-400">{{ news.created_at|timesince }} ago
+                                </p>
+                            </div>
+                        </div>
+                        <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-2 line-clamp-2">{{ news.title }}
+                        </h3>
+                        <p class="text-gray-600 dark:text-gray-400 text-sm mb-4 line-clamp-2">{{
+                            news.content|truncatewords:20 }}</p>
+                        <div class="flex justify-between items-center">
+                            <div class="flex space-x-4 text-gray-500 dark:text-gray-400 text-sm">
+                                <span><i class="fas fa-heart mr-1"></i> {{ news.likes.count }}</span>
+                                <span><i class="fas fa-comment mr-1"></i> {{ news.comments.count }}</span>
+                            </div>
+                            <a href="{% url 'news:news_detail' news.pk %}"
+                                class="text-purple-600 hover:text-purple-700 text-sm font-medium">
+                                Read More →
+                            </a>
+                        </div>
+                    </div>
+                </article>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- No Results -->
+        {% if not external_news and not local_news %}
+        <div class="text-center py-20 bg-white dark:bg-dark-card rounded-2xl">
+            <div
+                class="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gray-100 dark:bg-dark-secondary mb-6">
+                <i class="fas fa-newspaper text-3xl text-gray-400"></i>
+            </div>
+            <h3 class="text-xl font-medium text-gray-900 dark:text-white mb-2">No news from {{ state.name }} yet</h3>
+            <p class="text-gray-500 dark:text-gray-400 mb-6">Check back later for updates</p>
+            <a href="{% url 'news:india_news_hub' %}"
+                class="px-6 py-3 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition-colors">
+                Explore Other States
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Skeleton Loader Template (hidden, used for AJAX loading) -->
+<template id="skeleton-card">
+    <div class="bg-white dark:bg-dark-card rounded-2xl shadow-md overflow-hidden">
+        <div class="skeleton w-full h-48"></div>
+        <div class="p-5">
+            <div class="flex items-center justify-between mb-3">
+                <div class="skeleton h-6 w-20 rounded-full"></div>
+                <div class="skeleton h-4 w-16 rounded"></div>
+            </div>
+            <div class="skeleton h-6 w-full rounded mb-2"></div>
+            <div class="skeleton h-6 w-3/4 rounded mb-4"></div>
+            <div class="skeleton h-4 w-full rounded mb-2"></div>
+            <div class="skeleton h-4 w-2/3 rounded mb-4"></div>
+            <div class="skeleton h-5 w-32 rounded"></div>
+        </div>
+    </div>
+</template>
+{% endblock %}

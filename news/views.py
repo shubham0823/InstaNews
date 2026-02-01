@@ -158,13 +158,25 @@ def explore_page(request):
         .prefetch_related('likes', 'comments', 'shares', 'images')\
         .annotate(engagement_score=Count('likes') + Count('comments') + Count('shares'))
     
+    external_news = []  # For API-fetched personalized news
+    is_personalized = False
+    
     if active_filter == 'trending':
         # Get trending news based on engagement score in the last 7 days
         seven_days_ago = timezone.now() - timezone.timedelta(days=7)
         news_items = news_queryset.filter(created_at__gte=seven_days_ago)\
             .order_by('-engagement_score', '-created_at')
     elif active_filter == 'for_you':
-        # Get personalized news based on user's interests
+        # Use the recommendation engine for personalized feed
+        from .recommendation_engine import generate_personalized_feed
+        
+        page = int(request.GET.get('page', 1))
+        feed_data = generate_personalized_feed(request.user, page=page, page_size=12)
+        
+        external_news = feed_data.get('articles', [])
+        is_personalized = not feed_data.get('is_cold_start', True)
+        
+        # Also get some local news from followed users and liked authors
         followed_users = request.user.profile.following.values_list('user', flat=True)
         liked_news = request.user.liked_news.values_list('author', flat=True)
         interested_hashtags = Hashtag.objects.filter(
@@ -175,25 +187,28 @@ def explore_page(request):
             Q(author__in=followed_users) |  # Posts from followed users
             Q(author__in=liked_news) |      # Posts from authors whose content user has liked
             Q(hashtags__name__in=interested_hashtags)  # Posts with hashtags user has interacted with
-        ).distinct().order_by('-created_at')
+        ).distinct().order_by('-created_at')[:6]  # Limit to 6 local items
     else:  # followers
         # Get news only from followed users
         followed_users = request.user.profile.following.values_list('user', flat=True)
         news_items = news_queryset.filter(author__in=followed_users).order_by('-created_at')
     
-    # Pagination
-    paginator = Paginator(news_items, 12)  # Show 12 news items per page
-    page = request.GET.get('page')
-    try:
-        news_items = paginator.page(page)
-    except PageNotAnInteger:
-        news_items = paginator.page(1)
-    except EmptyPage:
-        news_items = paginator.page(paginator.num_pages)
+    # Pagination (only for non-for_you filters since for_you uses API pagination)
+    if active_filter != 'for_you':
+        paginator = Paginator(news_items, 12)  # Show 12 news items per page
+        page = request.GET.get('page')
+        try:
+            news_items = paginator.page(page)
+        except PageNotAnInteger:
+            news_items = paginator.page(1)
+        except EmptyPage:
+            news_items = paginator.page(paginator.num_pages)
     
     context = {
         'news_items': news_items,
-        'active_filter': active_filter
+        'active_filter': active_filter,
+        'external_news': external_news,
+        'is_personalized': is_personalized,
     }
     return render(request, 'news/explore.html', context)
 
@@ -398,34 +413,80 @@ def mark_all_notifications_read(request):
     request.user.notifications.filter(is_read=False).update(is_read=True)
     return JsonResponse({'status': 'success'})
 
-@login_required
 def search_news(request):
-    query = request.GET.get('q', '')
-    news_type = request.GET.get('type', 'all')
+    query = request.GET.get('q', '').strip()
+    search_type = request.GET.get('type', 'all')  # all, news, users, hashtags
     
-    news_list = News.objects.all()
+    # Initialize empty querysets
+    news_list = News.objects.none()
+    users_list = User.objects.none()
+    hashtags_list = Hashtag.objects.none()
+    
+    original_query = query  # Keep original for display
     
     if query:
-        news_list = news_list.filter(
-            Q(title__icontains=query) |
-            Q(content__icontains=query) |
-            Q(author__username__icontains=query)
-        )
+        # Check if query starts with @ for user search
+        if query.startswith('@'):
+            search_type = 'users'
+            query = query[1:]  # Remove @ symbol
+        # Check if query starts with # for hashtag search
+        elif query.startswith('#'):
+            search_type = 'hashtags'
+            query = query[1:]  # Remove # symbol
+        
+        # Only search if we have a query after removing prefix
+        if query:
+            # Search based on type
+            if search_type == 'all' or search_type == 'news':
+                news_list = News.objects.select_related('author', 'author__profile').prefetch_related(
+                    'images', 'likes', 'comments', 'hashtags'
+                ).filter(
+                    Q(title__icontains=query) |
+                    Q(content__icontains=query) |
+                    Q(hashtags__name__icontains=query)
+                ).distinct().order_by('-created_at')
+            
+            if search_type == 'all' or search_type == 'users':
+                users_list = User.objects.select_related('profile').filter(
+                    Q(username__icontains=query) |
+                    Q(first_name__icontains=query) |
+                    Q(last_name__icontains=query)
+                ).order_by('username')
+            
+            if search_type == 'all' or search_type == 'hashtags':
+                hashtags_list = Hashtag.objects.filter(
+                    name__icontains=query
+                ).annotate(
+                    news_count=Count('news_posts')
+                ).order_by('-news_count')
     
-    if news_type != 'all':
-        news_list = news_list.filter(news_type=news_type)
+    # Get counts before pagination
+    news_count = news_list.count()
+    users_count = users_list.count()
+    hashtags_count = hashtags_list.count()
     
-    news_list = news_list.order_by('-created_at')
-    
-    # Pagination
-    paginator = Paginator(news_list, 12)  # Show 12 news articles per page
+    # Pagination for news
+    news_paginator = Paginator(news_list, 12)
     page = request.GET.get('page')
-    news_articles = paginator.get_page(page)
+    news_articles = news_paginator.get_page(page)
+    
+    # Pagination for users
+    users_paginator = Paginator(users_list, 20)
+    users_page = users_paginator.get_page(page)
+    
+    # Pagination for hashtags
+    hashtags_paginator = Paginator(hashtags_list, 20)
+    hashtags_page = hashtags_paginator.get_page(page)
     
     context = {
         'news_articles': news_articles,
-        'query': query,
-        'news_type': news_type,
+        'users': users_page,
+        'hashtags': hashtags_page,
+        'query': query if query else original_query,
+        'search_type': search_type,
+        'news_count': news_count,
+        'users_count': users_count,
+        'hashtags_count': hashtags_count,
     }
     
     return render(request, 'news/search_results.html', context)
@@ -688,3 +749,341 @@ def user_search_api(request):
             } for user in users]
         })
     return JsonResponse({'users': []})
+
+
+# India States and UTs Data
+INDIA_STATES = [
+    {"name": "Andhra Pradesh", "code": "ap", "capital": "Amaravati", "region": "South"},
+    {"name": "Arunachal Pradesh", "code": "ar", "capital": "Itanagar", "region": "Northeast"},
+    {"name": "Assam", "code": "as", "capital": "Dispur", "region": "Northeast"},
+    {"name": "Bihar", "code": "br", "capital": "Patna", "region": "East"},
+    {"name": "Chhattisgarh", "code": "cg", "capital": "Raipur", "region": "Central"},
+    {"name": "Goa", "code": "ga", "capital": "Panaji", "region": "West"},
+    {"name": "Gujarat", "code": "gj", "capital": "Gandhinagar", "region": "West"},
+    {"name": "Haryana", "code": "hr", "capital": "Chandigarh", "region": "North"},
+    {"name": "Himachal Pradesh", "code": "hp", "capital": "Shimla", "region": "North"},
+    {"name": "Jharkhand", "code": "jh", "capital": "Ranchi", "region": "East"},
+    {"name": "Karnataka", "code": "ka", "capital": "Bengaluru", "region": "South"},
+    {"name": "Kerala", "code": "kl", "capital": "Thiruvananthapuram", "region": "South"},
+    {"name": "Madhya Pradesh", "code": "mp", "capital": "Bhopal", "region": "Central"},
+    {"name": "Maharashtra", "code": "mh", "capital": "Mumbai", "region": "West"},
+    {"name": "Manipur", "code": "mn", "capital": "Imphal", "region": "Northeast"},
+    {"name": "Meghalaya", "code": "ml", "capital": "Shillong", "region": "Northeast"},
+    {"name": "Mizoram", "code": "mz", "capital": "Aizawl", "region": "Northeast"},
+    {"name": "Nagaland", "code": "nl", "capital": "Kohima", "region": "Northeast"},
+    {"name": "Odisha", "code": "or", "capital": "Bhubaneswar", "region": "East"},
+    {"name": "Punjab", "code": "pb", "capital": "Chandigarh", "region": "North"},
+    {"name": "Rajasthan", "code": "rj", "capital": "Jaipur", "region": "West"},
+    {"name": "Sikkim", "code": "sk", "capital": "Gangtok", "region": "Northeast"},
+    {"name": "Tamil Nadu", "code": "tn", "capital": "Chennai", "region": "South"},
+    {"name": "Telangana", "code": "tg", "capital": "Hyderabad", "region": "South"},
+    {"name": "Tripura", "code": "tr", "capital": "Agartala", "region": "Northeast"},
+    {"name": "Uttar Pradesh", "code": "up", "capital": "Lucknow", "region": "North"},
+    {"name": "Uttarakhand", "code": "uk", "capital": "Dehradun", "region": "North"},
+    {"name": "West Bengal", "code": "wb", "capital": "Kolkata", "region": "East"},
+]
+
+INDIA_UTS = [
+    {"name": "Andaman and Nicobar", "code": "an", "type": "UT"},
+    {"name": "Chandigarh", "code": "ch", "type": "UT"},
+    {"name": "Dadra Nagar Haveli and Daman Diu", "code": "dd", "type": "UT"},
+    {"name": "Delhi", "code": "dl", "type": "NCT"},
+    {"name": "Jammu and Kashmir", "code": "jk", "type": "UT"},
+    {"name": "Ladakh", "code": "la", "type": "UT"},
+    {"name": "Lakshadweep", "code": "ld", "type": "UT"},
+    {"name": "Puducherry", "code": "py", "type": "UT"},
+]
+
+# World Countries Data
+WORLD_COUNTRIES = [
+    {"name": "United States", "code": "us", "flag": "🇺🇸", "continent": "North America"},
+    {"name": "United Kingdom", "code": "uk", "flag": "🇬🇧", "continent": "Europe"},
+    {"name": "Japan", "code": "jp", "flag": "🇯🇵", "continent": "Asia"},
+    {"name": "Germany", "code": "de", "flag": "🇩🇪", "continent": "Europe"},
+    {"name": "France", "code": "fr", "flag": "🇫🇷", "continent": "Europe"},
+    {"name": "China", "code": "cn", "flag": "🇨🇳", "continent": "Asia"},
+    {"name": "Russia", "code": "ru", "flag": "🇷🇺", "continent": "Europe"},
+    {"name": "Australia", "code": "au", "flag": "🇦🇺", "continent": "Oceania"},
+    {"name": "Canada", "code": "ca", "flag": "🇨🇦", "continent": "North America"},
+    {"name": "Brazil", "code": "br", "flag": "🇧🇷", "continent": "South America"},
+    {"name": "South Korea", "code": "kr", "flag": "🇰🇷", "continent": "Asia"},
+    {"name": "Italy", "code": "it", "flag": "🇮🇹", "continent": "Europe"},
+    {"name": "Spain", "code": "es", "flag": "🇪🇸", "continent": "Europe"},
+    {"name": "Mexico", "code": "mx", "flag": "🇲🇽", "continent": "North America"},
+    {"name": "Indonesia", "code": "id", "flag": "🇮🇩", "continent": "Asia"},
+    {"name": "Netherlands", "code": "nl", "flag": "🇳🇱", "continent": "Europe"},
+    {"name": "Saudi Arabia", "code": "sa", "flag": "🇸🇦", "continent": "Asia"},
+    {"name": "Turkey", "code": "tr", "flag": "🇹🇷", "continent": "Europe"},
+    {"name": "Switzerland", "code": "ch", "flag": "🇨🇭", "continent": "Europe"},
+    {"name": "Poland", "code": "pl", "flag": "🇵🇱", "continent": "Europe"},
+    {"name": "Sweden", "code": "se", "flag": "🇸🇪", "continent": "Europe"},
+    {"name": "Belgium", "code": "be", "flag": "🇧🇪", "continent": "Europe"},
+    {"name": "Argentina", "code": "ar", "flag": "🇦🇷", "continent": "South America"},
+    {"name": "United Arab Emirates", "code": "ae", "flag": "🇦🇪", "continent": "Asia"},
+    {"name": "Thailand", "code": "th", "flag": "🇹🇭", "continent": "Asia"},
+    {"name": "Israel", "code": "il", "flag": "🇮🇱", "continent": "Asia"},
+    {"name": "Singapore", "code": "sg", "flag": "🇸🇬", "continent": "Asia"},
+    {"name": "South Africa", "code": "za", "flag": "🇿🇦", "continent": "Africa"},
+    {"name": "Egypt", "code": "eg", "flag": "🇪🇬", "continent": "Africa"},
+    {"name": "Nigeria", "code": "ng", "flag": "🇳🇬", "continent": "Africa"},
+    {"name": "Pakistan", "code": "pk", "flag": "🇵🇰", "continent": "Asia"},
+    {"name": "Bangladesh", "code": "bd", "flag": "🇧🇩", "continent": "Asia"},
+    {"name": "Vietnam", "code": "vn", "flag": "🇻🇳", "continent": "Asia"},
+    {"name": "Philippines", "code": "ph", "flag": "🇵🇭", "continent": "Asia"},
+    {"name": "Malaysia", "code": "my", "flag": "🇲🇾", "continent": "Asia"},
+    {"name": "New Zealand", "code": "nz", "flag": "🇳🇿", "continent": "Oceania"},
+    {"name": "Ireland", "code": "ie", "flag": "🇮🇪", "continent": "Europe"},
+    {"name": "Norway", "code": "no", "flag": "🇳🇴", "continent": "Europe"},
+    {"name": "Denmark", "code": "dk", "flag": "🇩🇰", "continent": "Europe"},
+    {"name": "Finland", "code": "fi", "flag": "🇫🇮", "continent": "Europe"},
+]
+
+TOP_COUNTRIES = WORLD_COUNTRIES[:10]
+
+
+def india_news_hub(request):
+    """India News Hub - Shows all states and UTs"""
+    import random
+    
+    # Add random news count for demo (in production, query actual news count)
+    states_data = []
+    for state in INDIA_STATES:
+        state_copy = state.copy()
+        state_copy['news_count'] = random.randint(5, 50)
+        states_data.append(state_copy)
+    
+    uts_data = []
+    for ut in INDIA_UTS:
+        ut_copy = ut.copy()
+        ut_copy['news_count'] = random.randint(3, 25)
+        uts_data.append(ut_copy)
+    
+    # Get search query for filtering
+    search_query = request.GET.get('q', '').strip().lower()
+    
+    if search_query:
+        states_data = [s for s in states_data if search_query in s['name'].lower()]
+        uts_data = [u for u in uts_data if search_query in u['name'].lower()]
+    
+    context = {
+        'states': states_data,
+        'uts': uts_data,
+        'search_query': search_query,
+        'total_states': len(INDIA_STATES),
+        'total_uts': len(INDIA_UTS),
+    }
+    
+    return render(request, 'news/india_news.html', context)
+
+
+def india_state_news(request, state_code):
+    """News for a specific Indian state - fetches from API"""
+    from .news_api import fetch_india_news
+    
+    # Find the state/UT
+    state = None
+    for s in INDIA_STATES + INDIA_UTS:
+        if s['code'] == state_code:
+            state = s
+            break
+    
+    if not state:
+        messages.error(request, 'State not found')
+        return redirect('news:india_news_hub')
+    
+    # Fetch real news from API
+    page = int(request.GET.get('page', 1))
+    api_response = fetch_india_news(state['name'], page_size=12, page=page)
+    
+    # Get news from API
+    external_news = api_response.get('articles', []) if api_response.get('success') else []
+    
+    # Also get local news from database
+    local_news = News.objects.filter(
+        Q(title__icontains=state['name']) |
+        Q(content__icontains=state['name'])
+    ).order_by('-created_at')[:6]
+    
+    context = {
+        'state': state,
+        'external_news': external_news,
+        'local_news': local_news,
+        'news_count': api_response.get('total_results', 0),
+        'news_source': api_response.get('source', 'unknown'),
+        'from_cache': api_response.get('from_cache', False),
+        'api_success': api_response.get('success', False),
+    }
+    
+    return render(request, 'news/state_news.html', context)
+
+
+def world_news_hub(request):
+    """World News Hub - Shows all countries"""
+    import random
+    
+    # Add random news count for demo
+    countries_data = []
+    for country in WORLD_COUNTRIES:
+        country_copy = country.copy()
+        country_copy['news_count'] = random.randint(10, 100)
+        countries_data.append(country_copy)
+    
+    top_countries = countries_data[:10]
+    
+    # Get search query for filtering
+    search_query = request.GET.get('q', '').strip().lower()
+    
+    if search_query:
+        countries_data = [c for c in countries_data if search_query in c['name'].lower()]
+    
+    # Group by continent
+    continents = {}
+    for country in countries_data:
+        continent = country['continent']
+        if continent not in continents:
+            continents[continent] = []
+        continents[continent].append(country)
+    
+    context = {
+        'countries': countries_data,
+        'top_countries': top_countries,
+        'continents': continents,
+        'search_query': search_query,
+        'total_countries': len(WORLD_COUNTRIES),
+    }
+    
+    return render(request, 'news/world_news.html', context)
+
+
+def world_country_news(request, country_code):
+    """News for a specific country - fetches from API"""
+    from .news_api import fetch_world_news
+    
+    # Find the country
+    country = None
+    for c in WORLD_COUNTRIES:
+        if c['code'] == country_code:
+            country = c
+            break
+    
+    if not country:
+        messages.error(request, 'Country not found')
+        return redirect('news:world_news_hub')
+    
+    # Fetch real news from API
+    page = int(request.GET.get('page', 1))
+    api_response = fetch_world_news(country['name'], page_size=12, page=page)
+    
+    # Get news from API
+    external_news = api_response.get('articles', []) if api_response.get('success') else []
+    
+    # Also get local news from database
+    local_news = News.objects.filter(
+        Q(title__icontains=country['name']) |
+        Q(content__icontains=country['name'])
+    ).order_by('-created_at')[:6]
+    
+    context = {
+        'country': country,
+        'external_news': external_news,
+        'local_news': local_news,
+        'news_count': api_response.get('total_results', 0),
+        'news_source': api_response.get('source', 'unknown'),
+        'from_cache': api_response.get('from_cache', False),
+        'api_success': api_response.get('success', False),
+    }
+    
+    return render(request, 'news/country_news.html', context)
+
+
+# API Endpoints for AJAX
+def api_fetch_news(request):
+    """AJAX endpoint to fetch news for a region"""
+    from .news_api import fetch_news
+    
+    query = request.GET.get('q', '')
+    region_type = request.GET.get('type', 'general')  # india, world, general
+    page = int(request.GET.get('page', 1))
+    
+    if not query:
+        return JsonResponse({'success': False, 'error': 'Query required'})
+    
+    # Add context based on region type
+    if region_type == 'india':
+        query = f"{query} India news"
+    elif region_type == 'world':
+        query = f"{query} news"
+    
+    result = fetch_news(query, page_size=12, page=page)
+    
+    return JsonResponse(result)
+
+
+def api_trending_news(request):
+    """AJAX endpoint to fetch trending news"""
+    from .news_api import fetch_trending_news
+    
+    country = request.GET.get('country', 'in')
+    category = request.GET.get('category', 'general')
+    
+    result = fetch_trending_news(category=category, country=country, page_size=10)
+    
+    if result:
+        return JsonResponse(result)
+    return JsonResponse({'success': False, 'articles': [], 'error': 'Unable to fetch trending news'})
+
+
+def for_you_feed(request):
+    """Personalized For You feed page"""
+    from .recommendation_engine import generate_personalized_feed
+    
+    user = request.user if request.user.is_authenticated else None
+    
+    # Initial load (page 1)
+    feed_data = generate_personalized_feed(user, page=1, page_size=12)
+    
+    context = {
+        'articles': feed_data.get('articles', []),
+        'is_cold_start': feed_data.get('is_cold_start', True),
+        'has_more': feed_data.get('has_more', False),
+        'feed_source': feed_data.get('source', 'unknown'),
+    }
+    
+    return render(request, 'news/for_you.html', context)
+
+
+def api_for_you_feed(request):
+    """AJAX endpoint for infinite scroll on For You feed"""
+    from .recommendation_engine import generate_personalized_feed
+    
+    user = request.user if request.user.is_authenticated else None
+    page = int(request.GET.get('page', 1))
+    
+    feed_data = generate_personalized_feed(user, page=page, page_size=12)
+    
+    return JsonResponse(feed_data)
+
+
+def api_track_interaction(request):
+    """AJAX endpoint to track user interactions for personalization"""
+    from .recommendation_engine import track_user_interaction
+    
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'POST required'})
+    
+    if not request.user.is_authenticated:
+        return JsonResponse({'success': False, 'error': 'Login required'})
+    
+    import json
+    try:
+        data = json.loads(request.body)
+        interaction_type = data.get('type', '')
+        interaction_data = data.get('data', {})
+        
+        track_user_interaction(request.user, interaction_type, interaction_data)
+        return JsonResponse({'success': True})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
+
+
+

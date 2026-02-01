@@ -1,0 +1,266 @@
+{% extends "base.html" %}
+
+{% block title %}World News - InstaNews{% endblock %}
+
+{% block extra_css %}
+<style>
+    .hero-globe {
+        background: linear-gradient(135deg, #1e3a5f 0%, #0f172a 100%);
+    }
+
+    .country-card {
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        background: rgba(255, 255, 255, 0.9);
+        backdrop-filter: blur(10px);
+    }
+
+    .dark .country-card {
+        background: rgba(30, 41, 59, 0.9);
+    }
+
+    .country-card:hover {
+        transform: translateY(-8px) scale(1.02);
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    }
+
+    .carousel-container {
+        scroll-behavior: smooth;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+    }
+
+    .carousel-container::-webkit-scrollbar {
+        display: none;
+    }
+
+    .top-country-card {
+        min-width: 180px;
+        transition: all 0.3s ease;
+    }
+
+    .top-country-card:hover {
+        transform: scale(1.05);
+    }
+
+    .search-dropdown {
+        max-height: 300px;
+        overflow-y: auto;
+    }
+
+    .continent-badge {
+        font-size: 0.65rem;
+    }
+
+    .flag-large {
+        font-size: 3rem;
+        line-height: 1;
+    }
+
+    .news-pulse {
+        animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+
+        0%,
+        100% {
+            opacity: 1;
+        }
+
+        50% {
+            opacity: 0.6;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="min-h-screen">
+    <!-- Hero Section -->
+    <div class="hero-globe relative overflow-hidden">
+        <div class="absolute inset-0 opacity-10">
+            <svg class="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
+                <circle cx="50" cy="50" r="40" fill="none" stroke="white" stroke-width="0.5" opacity="0.3" />
+                <circle cx="50" cy="50" r="30" fill="none" stroke="white" stroke-width="0.5" opacity="0.3" />
+                <circle cx="50" cy="50" r="20" fill="none" stroke="white" stroke-width="0.5" opacity="0.3" />
+            </svg>
+        </div>
+        <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+            <div class="text-center">
+                <div
+                    class="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-br from-blue-500 to-purple-600 mb-6 shadow-xl">
+                    <i class="fas fa-globe-americas text-white text-3xl"></i>
+                </div>
+                <h1 class="text-4xl md:text-5xl font-extrabold text-white mb-4">
+                    World News Hub
+                </h1>
+                <p class="text-lg text-gray-300 max-w-2xl mx-auto mb-8">
+                    Global coverage from {{ total_countries }} countries across all continents
+                </p>
+
+                <!-- Search Dropdown -->
+                <div class="max-w-md mx-auto relative">
+                    <form method="GET" action="{% url 'news:world_news_hub' %}" class="relative">
+                        <input type="text" name="q" value="{{ search_query }}" placeholder="Search countries..."
+                            id="country-search"
+                            class="w-full pl-12 pr-4 py-4 bg-white/10 backdrop-blur-lg border border-white/20 rounded-2xl text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200">
+                        <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-gray-300"></i>
+                        {% if search_query %}
+                        <a href="{% url 'news:world_news_hub' %}"
+                            class="absolute right-4 top-1/2 -translate-y-1/2 text-gray-300 hover:text-white">
+                            <i class="fas fa-times"></i>
+                        </a>
+                        {% endif %}
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Top 10 Trending Countries Carousel -->
+        <div class="mb-12">
+            <div class="flex items-center justify-between mb-6">
+                <h2 class="text-2xl font-bold text-gray-900 dark:text-white flex items-center">
+                    <i class="fas fa-fire mr-3 text-orange-500"></i>
+                    Top 10 Trending
+                </h2>
+                <div class="flex space-x-2">
+                    <button onclick="scrollCarousel(-1)"
+                        class="p-2 rounded-full bg-gray-100 dark:bg-dark-card hover:bg-gray-200 dark:hover:bg-dark-secondary transition-colors">
+                        <i class="fas fa-chevron-left text-gray-600 dark:text-gray-400"></i>
+                    </button>
+                    <button onclick="scrollCarousel(1)"
+                        class="p-2 rounded-full bg-gray-100 dark:bg-dark-card hover:bg-gray-200 dark:hover:bg-dark-secondary transition-colors">
+                        <i class="fas fa-chevron-right text-gray-600 dark:text-gray-400"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div id="top-carousel" class="carousel-container flex space-x-4 overflow-x-auto pb-4">
+                {% for country in top_countries %}
+                <a href="{% url 'news:world_country_news' country.code %}"
+                    class="top-country-card bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl p-5 flex-shrink-0 shadow-lg hover:shadow-2xl">
+                    <div class="text-center text-white">
+                        <span class="flag-large mb-2 block">{{ country.flag }}</span>
+                        <h3 class="font-semibold text-sm mb-1">{{ country.name }}</h3>
+                        <div class="flex items-center justify-center text-xs opacity-80">
+                            <span class="news-pulse w-2 h-2 bg-white rounded-full mr-1"></span>
+                            {{ country.news_count }} stories
+                        </div>
+                    </div>
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- All Countries by Continent -->
+        {% for continent, continent_countries in continents.items %}
+        <div class="mb-10">
+            <div class="flex items-center mb-6">
+                <h2 class="text-xl font-bold text-gray-900 dark:text-white flex items-center">
+                    {% if continent == 'Asia' %}
+                    <i class="fas fa-mountain mr-3 text-red-500"></i>
+                    {% elif continent == 'Europe' %}
+                    <i class="fas fa-landmark mr-3 text-blue-500"></i>
+                    {% elif continent == 'North America' %}
+                    <i class="fas fa-flag-usa mr-3 text-blue-600"></i>
+                    {% elif continent == 'South America' %}
+                    <i class="fas fa-tree mr-3 text-green-500"></i>
+                    {% elif continent == 'Africa' %}
+                    <i class="fas fa-sun mr-3 text-yellow-500"></i>
+                    {% elif continent == 'Oceania' %}
+                    <i class="fas fa-water mr-3 text-cyan-500"></i>
+                    {% else %}
+                    <i class="fas fa-globe mr-3 text-gray-500"></i>
+                    {% endif %}
+                    {{ continent }}
+                    <span
+                        class="ml-3 px-3 py-1 bg-gray-100 dark:bg-dark-secondary text-gray-600 dark:text-gray-400 text-sm rounded-full">
+                        {{ continent_countries|length }}
+                    </span>
+                </h2>
+            </div>
+
+            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                {% for country in continent_countries %}
+                <a href="{% url 'news:world_country_news' country.code %}"
+                    class="country-card rounded-2xl p-4 border border-gray-100 dark:border-gray-700 hover:border-blue-500 group">
+                    <div class="flex items-center space-x-3">
+                        <span class="text-3xl">{{ country.flag }}</span>
+                        <div class="flex-1 min-w-0">
+                            <h3
+                                class="font-semibold text-gray-900 dark:text-white text-sm group-hover:text-blue-600 transition-colors truncate">
+                                {{ country.name }}
+                            </h3>
+                            <div class="flex items-center text-xs text-gray-500 dark:text-gray-400">
+                                <span class="news-pulse w-2 h-2 bg-green-500 rounded-full mr-1"></span>
+                                {{ country.news_count }} news
+                            </div>
+                        </div>
+                    </div>
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+        {% empty %}
+        <div class="text-center py-12 bg-gray-50 dark:bg-dark-card rounded-2xl">
+            <i class="fas fa-search text-4xl text-gray-300 dark:text-gray-600 mb-4"></i>
+            <p class="text-gray-500 dark:text-gray-400">No countries found matching "{{ search_query }}"</p>
+            <a href="{% url 'news:world_news_hub' %}" class="mt-4 inline-block text-blue-600 hover:text-blue-700">
+                Clear search
+            </a>
+        </div>
+        {% endfor %}
+
+        <!-- Quick Global Stats -->
+        <div class="mt-12 bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl p-8 text-white">
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
+                <div>
+                    <p class="text-4xl font-bold">{{ total_countries }}</p>
+                    <p class="text-sm opacity-80">Countries</p>
+                </div>
+                <div>
+                    <p class="text-4xl font-bold">7</p>
+                    <p class="text-sm opacity-80">Continents</p>
+                </div>
+                <div>
+                    <p class="text-4xl font-bold">8B+</p>
+                    <p class="text-sm opacity-80">World Population</p>
+                </div>
+                <div>
+                    <p class="text-4xl font-bold">24/7</p>
+                    <p class="text-sm opacity-80">Live Updates</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Carousel scroll
+    function scrollCarousel(direction) {
+        const carousel = document.getElementById('top-carousel');
+        const scrollAmount = 200;
+        carousel.scrollBy({
+            left: direction * scrollAmount,
+            behavior: 'smooth'
+        });
+    }
+
+    // Real-time search
+    const searchInput = document.getElementById('country-search');
+    let debounceTimer;
+
+    if (searchInput) {
+        searchInput.addEventListener('input', (e) => {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => {
+                if (e.target.value.length >= 2 || e.target.value.length === 0) {
+                    e.target.form.submit();
+                }
+            }, 500);
+        });
+    }
+</script>
+{% endblock %}

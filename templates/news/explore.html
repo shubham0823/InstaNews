@@ -1,49 +1,199 @@
 {% extends 'base.html' %}
 
-{% block title %}Explore - NewsHub{% endblock %}
+{% block title %}Explore - InstaNews{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Skeleton Loader Animation */
+    .skeleton {
+        background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+        background-size: 200% 100%;
+        animation: skeleton-loading 1.5s infinite;
+    }
+
+    .dark .skeleton {
+        background: linear-gradient(90deg, #374151 25%, #4b5563 50%, #374151 75%);
+        background-size: 200% 100%;
+    }
+
+    @keyframes skeleton-loading {
+        0% {
+            background-position: 200% 0;
+        }
+
+        100% {
+            background-position: -200% 0;
+        }
+    }
+
+    /* Card animations */
+    .news-card {
+        opacity: 0;
+        transform: translateY(20px);
+        animation: fadeSlideIn 0.5s ease forwards;
+    }
+
+    @keyframes fadeSlideIn {
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .news-card:hover {
+        transform: translateY(-5px);
+    }
+
+    /* Stagger animation delays */
+    .news-card:nth-child(1) {
+        animation-delay: 0.05s;
+    }
+
+    .news-card:nth-child(2) {
+        animation-delay: 0.1s;
+    }
+
+    .news-card:nth-child(3) {
+        animation-delay: 0.15s;
+    }
+
+    .news-card:nth-child(4) {
+        animation-delay: 0.2s;
+    }
+
+    .news-card:nth-child(5) {
+        animation-delay: 0.25s;
+    }
+
+    .news-card:nth-child(6) {
+        animation-delay: 0.3s;
+    }
+</style>
+{% endblock %}
 
 {% block content %}
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
     <!-- Header -->
     <div class="mb-8">
-        <h1 class="text-3xl font-bold text-gray-900">Explore</h1>
-        <p class="mt-2 text-gray-600">Discover news from around the world</p>
+        <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Explore</h1>
+        <p class="mt-2 text-gray-600 dark:text-gray-400">Discover news from around the world</p>
     </div>
 
     <!-- Filter Tabs -->
-    <div class="mb-8 border-b border-gray-200">
+    <div class="mb-8 border-b border-gray-200 dark:border-gray-700">
         <nav class="-mb-px flex space-x-8" aria-label="News filters">
-            <button class="filter-tab whitespace-nowrap pb-4 px-1 border-b-2 font-medium text-sm {% if active_filter == 'trending' %}border-blue-500 text-blue-600{% else %}border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300{% endif %}" 
-                    data-filter="trending">
+            <button
+                class="filter-tab whitespace-nowrap pb-4 px-1 border-b-2 font-medium text-sm {% if active_filter == 'trending' %}border-blue-500 text-blue-600{% else %}border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300{% endif %}"
+                data-filter="trending">
                 <i class="fas fa-fire mr-2"></i>
                 Trending News
             </button>
-            <button class="filter-tab whitespace-nowrap pb-4 px-1 border-b-2 font-medium text-sm {% if active_filter == 'for_you' %}border-blue-500 text-blue-600{% else %}border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300{% endif %}"
-                    data-filter="for_you">
-                <i class="fas fa-user-circle mr-2"></i>
+            <button
+                class="filter-tab whitespace-nowrap pb-4 px-1 border-b-2 font-medium text-sm {% if active_filter == 'for_you' %}border-purple-500 text-purple-600{% else %}border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300{% endif %}"
+                data-filter="for_you">
+                <i class="fas fa-magic mr-2 text-purple-500"></i>
                 For You
+                {% if is_personalized %}<span
+                    class="ml-1 px-1.5 py-0.5 bg-purple-100 dark:bg-purple-900/30 text-purple-600 text-xs rounded-full">Personalized</span>{%
+                endif %}
             </button>
-            <button class="filter-tab whitespace-nowrap pb-4 px-1 border-b-2 font-medium text-sm {% if active_filter == 'followers' %}border-blue-500 text-blue-600{% else %}border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300{% endif %}"
-                    data-filter="followers">
+            <button
+                class="filter-tab whitespace-nowrap pb-4 px-1 border-b-2 font-medium text-sm {% if active_filter == 'followers' %}border-blue-500 text-blue-600{% else %}border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300{% endif %}"
+                data-filter="followers">
                 <i class="fas fa-users mr-2"></i>
                 Followers
             </button>
         </nav>
     </div>
 
-    <!-- News Feed -->
+    {% if active_filter == 'for_you' and external_news %}
+    <!-- External API News (For You) -->
+    <div class="mb-10">
+        <div class="flex items-center justify-between mb-4">
+            <h2 class="text-xl font-bold text-gray-900 dark:text-white flex items-center">
+                <i class="fas fa-sparkles mr-2 text-purple-500"></i>
+                Recommended For You
+                <span class="ml-2 px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-600 text-xs rounded-full">
+                    <i class="fas fa-rss mr-1"></i>Live
+                </span>
+            </h2>
+        </div>
+        <div id="external-news-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {% for article in external_news %}
+            <article
+                class="news-card bg-white dark:bg-dark-card rounded-2xl shadow-md overflow-hidden transition-all duration-300 hover:shadow-xl"
+                data-url="{{ article.url }}" data-source="{{ article.source }}">
+                {% if article.image %}
+                <img src="{{ article.image }}" alt="{{ article.title }}" class="w-full h-44 object-cover"
+                    onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" loading="lazy">
+                <div
+                    class="w-full h-44 bg-gradient-to-br from-purple-500 to-pink-600 items-center justify-center hidden">
+                    <i class="fas fa-newspaper text-white text-3xl"></i>
+                </div>
+                {% else %}
+                <div class="w-full h-44 bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center">
+                    <i class="fas fa-newspaper text-white text-3xl"></i>
+                </div>
+                {% endif %}
+                <div class="p-4">
+                    <div class="flex items-center justify-between mb-2">
+                        <span
+                            class="text-xs font-medium text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-900/30 px-2 py-1 rounded-full truncate max-w-[120px]">
+                            {{ article.source }}
+                        </span>
+                        {% if article.reason %}
+                        <span
+                            class="text-xs bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 px-2 py-0.5 rounded-full">
+                            {{ article.reason }}
+                        </span>
+                        {% endif %}
+                    </div>
+                    <h3 class="text-md font-bold text-gray-900 dark:text-white mb-2 line-clamp-2">
+                        {{ article.title }}
+                    </h3>
+                    <p class="text-gray-600 dark:text-gray-400 text-sm mb-3 line-clamp-2">
+                        {{ article.description|truncatewords:15 }}
+                    </p>
+                    <div class="flex items-center justify-between">
+                        {% if article.published_at %}
+                        <span class="text-xs text-gray-500 dark:text-gray-400">
+                            <i class="far fa-clock mr-1"></i>{{ article.published_at|slice:":10" }}
+                        </span>
+                        {% endif %}
+                        <a href="{{ article.url }}" target="_blank" rel="noopener noreferrer"
+                            class="text-purple-600 hover:text-purple-700 text-sm font-medium">
+                            Read <i class="fas fa-external-link-alt ml-1"></i>
+                        </a>
+                    </div>
+                </div>
+            </article>
+            {% endfor %}
+        </div>
+    </div>
+
+    {% if news_items %}
+    <h2 class="text-xl font-bold text-gray-900 dark:text-white mb-4 flex items-center">
+        <i class="fas fa-users mr-2 text-blue-500"></i>
+        From Your Network
+    </h2>
+    {% endif %}
+    {% endif %}
+
+    <!-- Local News Feed -->
     <div id="news-feed" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {% for news in news_items %}
-        <article class="bg-white rounded-lg shadow-md overflow-hidden transform hover:-translate-y-1 transition-all duration-200">
+        <article
+            class="news-card bg-white dark:bg-dark-card rounded-2xl shadow-md overflow-hidden transform hover:-translate-y-1 transition-all duration-300 hover:shadow-xl">
             <!-- Author Info -->
-            <div class="p-4 border-b">
+            <div class="p-4 border-b dark:border-gray-700">
                 <div class="flex items-center">
-                    <a href="{% url 'news:user_profile' news.author.username %}" class="flex items-center hover:text-blue-600">
-                        <img src="{{ news.author.profile.avatar.url }}" alt="{{ news.author.username }}" 
-                             class="h-10 w-10 rounded-full object-cover">
+                    <a href="{% url 'news:user_profile' news.author.username %}"
+                        class="flex items-center hover:text-blue-600">
+                        <img src="{{ news.author.profile.avatar.url }}" alt="{{ news.author.username }}"
+                            class="h-10 w-10 rounded-full object-cover ring-2 ring-gray-200 dark:ring-gray-700">
                         <div class="ml-3">
-                            <p class="text-sm font-medium text-gray-900">{{ news.author.username }}</p>
-                            <p class="text-sm text-gray-500">{{ news.created_at|timesince }} ago</p>
+                            <p class="text-sm font-medium text-gray-900 dark:text-white">{{ news.author.username }}</p>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">{{ news.created_at|timesince }} ago</p>
                         </div>
                     </a>
                 </div>
@@ -51,98 +201,107 @@
 
             <!-- News Content -->
             {% if news.images.first %}
-            <div class="relative h-48">
-                <img src="{{ news.images.first.image.url }}" alt="{{ news.title }}" 
-                     class="absolute inset-0 w-full h-full object-cover">
+            <div class="relative h-44">
+                <img src="{{ news.images.first.image.url }}" alt="{{ news.title }}"
+                    class="absolute inset-0 w-full h-full object-cover">
             </div>
             {% endif %}
 
             <div class="p-4">
-                <h2 class="text-xl font-semibold mb-2">
-                    <a href="{% url 'news:news_detail' news.pk %}" class="hover:text-blue-600 transition-colors duration-200">
+                <h2 class="text-lg font-semibold mb-2 text-gray-900 dark:text-white">
+                    <a href="{% url 'news:news_detail' news.pk %}"
+                        class="hover:text-blue-600 transition-colors duration-200">
                         {{ news.title }}
                     </a>
                 </h2>
-                
-                <p class="text-gray-600 mb-4">{{ news.content|truncatewords:30 }}</p>
+
+                <p class="text-gray-600 dark:text-gray-400 mb-4 text-sm line-clamp-2">{{ news.content|truncatewords:20
+                    }}</p>
 
                 <!-- Social Interactions -->
-                <div class="flex items-center justify-between mt-4 pt-4 border-t">
+                <div class="flex items-center justify-between mt-4 pt-4 border-t dark:border-gray-700">
                     <div class="flex space-x-4">
-                        <button class="like-btn flex items-center space-x-1 text-gray-500 hover:text-blue-600 transition-colors duration-200" 
-                                data-news-id="{{ news.pk }}">
+                        <button
+                            class="like-btn flex items-center space-x-1 text-gray-500 hover:text-blue-600 transition-colors duration-200"
+                            data-news-id="{{ news.pk }}">
                             <i class="far fa-heart {% if user in news.likes.all %}text-red-500{% endif %}"></i>
                             <span class="likes-count">{{ news.likes.count }}</span>
                         </button>
-                        <a href="{% url 'news:news_detail' news.pk %}#comments" 
-                           class="flex items-center space-x-1 text-gray-500 hover:text-blue-600 transition-colors duration-200">
+                        <a href="{% url 'news:news_detail' news.pk %}#comments"
+                            class="flex items-center space-x-1 text-gray-500 hover:text-blue-600 transition-colors duration-200">
                             <i class="far fa-comment"></i>
                             <span>{{ news.comments.count }}</span>
                         </a>
-                        <button class="share-btn flex items-center space-x-1 text-gray-500 hover:text-blue-600 transition-colors duration-200" 
-                                data-news-id="{{ news.pk }}">
+                        <button
+                            class="share-btn flex items-center space-x-1 text-gray-500 hover:text-blue-600 transition-colors duration-200"
+                            data-news-id="{{ news.pk }}">
                             <i class="far fa-share-square"></i>
                             <span class="shares-count">{{ news.shares.count }}</span>
                         </button>
                     </div>
-                    <a href="{% url 'news:news_detail' news.pk %}" 
-                       class="text-blue-600 hover:text-blue-800 transition-colors duration-200">Read More</a>
+                    <a href="{% url 'news:news_detail' news.pk %}"
+                        class="text-blue-600 hover:text-blue-800 transition-colors duration-200 text-sm">Read More</a>
                 </div>
             </div>
         </article>
         {% empty %}
+        {% if active_filter != 'for_you' or not external_news %}
         <div class="col-span-full text-center py-12">
-            <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                      d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
-            </svg>
-            <h3 class="mt-2 text-sm font-medium text-gray-900">No news found</h3>
-            <p class="mt-1 text-sm text-gray-500">
+            <div
+                class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-100 dark:bg-dark-secondary mb-4">
+                <i class="fas fa-newspaper text-2xl text-gray-400"></i>
+            </div>
+            <h3 class="mt-2 text-sm font-medium text-gray-900 dark:text-white">No news found</h3>
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
                 {% if active_filter == 'followers' %}
                 Start following people to see their news here.
+                {% elif active_filter == 'for_you' %}
+                We're still learning your preferences. Try searching or exploring content!
                 {% else %}
                 Check back later for more news.
                 {% endif %}
             </p>
             {% if active_filter == 'followers' %}
             <div class="mt-6">
-                <a href="{% url 'news:landing_page' %}" 
-                   class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 transition-colors duration-200">
+                <a href="{% url 'news:landing_page' %}"
+                    class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 transition-colors duration-200">
                     Discover Users
                 </a>
             </div>
             {% endif %}
         </div>
+        {% endif %}
         {% endfor %}
     </div>
 
     <!-- Pagination -->
-    {% if news_items.has_other_pages %}
+    {% if news_items.has_other_pages and active_filter != 'for_you' %}
     <div class="mt-8 flex justify-center">
         <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
             {% if news_items.has_previous %}
-            <a href="?page={{ news_items.previous_page_number }}&filter={{ active_filter }}" 
-               class="relative inline-flex items-center px-3 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 transition-colors duration-200">
+            <a href="?page={{ news_items.previous_page_number }}&filter={{ active_filter }}"
+                class="relative inline-flex items-center px-3 py-2 rounded-l-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-dark-card text-sm font-medium text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-dark-secondary transition-colors duration-200">
                 Previous
             </a>
             {% endif %}
 
             {% for num in news_items.paginator.page_range %}
             {% if news_items.number == num %}
-            <span class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-blue-50 text-sm font-medium text-blue-600">
+            <span
+                class="relative inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-700 bg-blue-50 dark:bg-blue-900/30 text-sm font-medium text-blue-600">
                 {{ num }}
             </span>
             {% else %}
-            <a href="?page={{ num }}&filter={{ active_filter }}" 
-               class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 transition-colors duration-200">
+            <a href="?page={{ num }}&filter={{ active_filter }}"
+                class="relative inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-dark-card text-sm font-medium text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-dark-secondary transition-colors duration-200">
                 {{ num }}
             </a>
             {% endif %}
             {% endfor %}
 
             {% if news_items.has_next %}
-            <a href="?page={{ news_items.next_page_number }}&filter={{ active_filter }}" 
-               class="relative inline-flex items-center px-3 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 transition-colors duration-200">
+            <a href="?page={{ news_items.next_page_number }}&filter={{ active_filter }}"
+                class="relative inline-flex items-center px-3 py-2 rounded-r-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-dark-card text-sm font-medium text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-dark-secondary transition-colors duration-200">
                 Next
             </a>
             {% endif %}
@@ -154,39 +313,56 @@
 
 {% block extra_js %}
 <script>
-$(document).ready(function() {
-    // Filter tabs functionality
-    $('.filter-tab').click(function() {
-        const filter = $(this).data('filter');
-        window.location.href = `?filter=${filter}`;
-    });
+    $(document).ready(function () {
+        // Filter tabs functionality
+        $('.filter-tab').click(function () {
+            const filter = $(this).data('filter');
+            window.location.href = `?filter=${filter}`;
+        });
 
-    // Like functionality
-    $('.like-btn').click(function() {
-        const newsId = $(this).data('news-id');
-        const btn = $(this);
-        
-        $.post(`/news/${newsId}/like/`, {
-            csrfmiddlewaretoken: '{{ csrf_token }}'
-        })
-        .done(function(data) {
-            btn.find('.likes-count').text(data.likes_count);
-            btn.find('i').toggleClass('text-red-500');
+        // Like functionality
+        $('.like-btn').click(function () {
+            const newsId = $(this).data('news-id');
+            const btn = $(this);
+
+            $.post(`/news/${newsId}/like/`, {
+                csrfmiddlewaretoken: '{{ csrf_token }}'
+            })
+                .done(function (data) {
+                    btn.find('.likes-count').text(data.likes_count);
+                    btn.find('i').toggleClass('text-red-500');
+                });
+        });
+
+        // Share functionality
+        $('.share-btn').click(function () {
+            const newsId = $(this).data('news-id');
+            const btn = $(this);
+
+            $.post(`/news/${newsId}/share/`, {
+                csrfmiddlewaretoken: '{{ csrf_token }}'
+            })
+                .done(function (data) {
+                    btn.find('.shares-count').text(data.shares_count);
+                });
+        });
+
+        // Track clicks on external news for personalization
+        $('#external-news-grid article').click(function () {
+            const source = $(this).data('source');
+
+            fetch('/api/track-interaction/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify({
+                    type: 'click',
+                    data: { source: source }
+                })
+            }).catch(console.error);
         });
     });
-
-    // Share functionality
-    $('.share-btn').click(function() {
-        const newsId = $(this).data('news-id');
-        const btn = $(this);
-        
-        $.post(`/news/${newsId}/share/`, {
-            csrfmiddlewaretoken: '{{ csrf_token }}'
-        })
-        .done(function(data) {
-            btn.find('.shares-count').text(data.shares_count);
-        });
-    });
-});
 </script>
-{% endblock %} 
+{% endblock %}

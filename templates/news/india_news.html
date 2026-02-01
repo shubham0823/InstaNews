@@ -1,0 +1,249 @@
+{% extends "base.html" %}
+
+{% block title %}India News - InstaNews{% endblock %}
+
+{% block extra_css %}
+<style>
+    .hero-gradient {
+        background: linear-gradient(135deg, #ff9933 0%, #ffffff 50%, #138808 100%);
+    }
+
+    .bento-card {
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .bento-card:hover {
+        transform: translateY(-8px) scale(1.02);
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    }
+
+    .state-card {
+        background: linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.7));
+        backdrop-filter: blur(10px);
+    }
+
+    .dark .state-card {
+        background: linear-gradient(135deg, rgba(30, 41, 59, 0.9), rgba(30, 41, 59, 0.7));
+    }
+
+    .search-glow:focus {
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+    }
+
+    .badge-live {
+        animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+
+        0%,
+        100% {
+            opacity: 1;
+        }
+
+        50% {
+            opacity: 0.6;
+        }
+    }
+
+    .region-tag {
+        font-size: 0.65rem;
+        padding: 2px 8px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="min-h-screen">
+    <!-- Hero Section -->
+    <div class="relative overflow-hidden">
+        <div class="hero-gradient absolute inset-0 opacity-20"></div>
+        <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+            <div class="text-center">
+                <div
+                    class="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-br from-orange-500 via-white to-green-600 mb-6 shadow-xl">
+                    <span class="text-4xl">🇮🇳</span>
+                </div>
+                <h1 class="text-4xl md:text-5xl font-extrabold text-gray-900 dark:text-white mb-4">
+                    India News Hub
+                </h1>
+                <p class="text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto mb-8">
+                    Stay updated with news from all {{ total_states }} States and {{ total_uts }} Union Territories of
+                    India
+                </p>
+
+                <!-- Quick Search -->
+                <div class="max-w-md mx-auto">
+                    <form method="GET" action="{% url 'news:india_news_hub' %}" class="relative">
+                        <input type="text" name="q" value="{{ search_query }}"
+                            placeholder="Search states & territories..."
+                            class="search-glow w-full pl-12 pr-4 py-4 bg-white dark:bg-dark-card border-0 rounded-2xl shadow-lg text-gray-900 dark:text-white focus:outline-none transition-all duration-200">
+                        <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                        {% if search_query %}
+                        <a href="{% url 'news:india_news_hub' %}"
+                            class="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                            <i class="fas fa-times"></i>
+                        </a>
+                        {% endif %}
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- States Section -->
+        <div class="mb-12">
+            <div class="flex items-center justify-between mb-6">
+                <h2 class="text-2xl font-bold text-gray-900 dark:text-white flex items-center">
+                    <i class="fas fa-map-marked-alt mr-3 text-orange-500"></i>
+                    States
+                    <span
+                        class="ml-3 px-3 py-1 bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 text-sm rounded-full">
+                        {{ states|length }}
+                    </span>
+                </h2>
+            </div>
+
+            {% if states %}
+            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+                {% for state in states %}
+                <a href="{% url 'news:india_state_news' state.code %}"
+                    class="bento-card state-card rounded-2xl p-4 border border-gray-100 dark:border-gray-700 hover:border-blue-500 group">
+                    <div class="flex flex-col h-full">
+                        <!-- State Icon/Image placeholder -->
+                        <div
+                            class="w-12 h-12 rounded-xl bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                            <i class="fas fa-landmark text-white"></i>
+                        </div>
+
+                        <!-- State Name -->
+                        <h3
+                            class="font-semibold text-gray-900 dark:text-white text-sm mb-1 group-hover:text-blue-600 transition-colors">
+                            {{ state.name }}
+                        </h3>
+
+                        <!-- Capital -->
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">
+                            {{ state.capital }}
+                        </p>
+
+                        <!-- Region Tag & News Count -->
+                        <div class="flex items-center justify-between mt-auto">
+                            <span
+                                class="region-tag bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded-full">
+                                {{ state.region }}
+                            </span>
+                            <span class="badge-live flex items-center text-xs text-green-600 dark:text-green-400">
+                                <span class="w-2 h-2 bg-green-500 rounded-full mr-1"></span>
+                                {{ state.news_count }}
+                            </span>
+                        </div>
+                    </div>
+                </a>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="text-center py-12 bg-gray-50 dark:bg-dark-card rounded-2xl">
+                <i class="fas fa-search text-4xl text-gray-300 dark:text-gray-600 mb-4"></i>
+                <p class="text-gray-500 dark:text-gray-400">No states found matching "{{ search_query }}"</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Union Territories Section -->
+        <div class="mb-12">
+            <div class="flex items-center justify-between mb-6">
+                <h2 class="text-2xl font-bold text-gray-900 dark:text-white flex items-center">
+                    <i class="fas fa-flag mr-3 text-green-600"></i>
+                    Union Territories
+                    <span
+                        class="ml-3 px-3 py-1 bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 text-sm rounded-full">
+                        {{ uts|length }}
+                    </span>
+                </h2>
+            </div>
+
+            {% if uts %}
+            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 gap-4">
+                {% for ut in uts %}
+                <a href="{% url 'news:india_state_news' ut.code %}"
+                    class="bento-card state-card rounded-2xl p-4 border border-gray-100 dark:border-gray-700 hover:border-green-500 group">
+                    <div class="flex items-center space-x-4">
+                        <!-- UT Icon -->
+                        <div
+                            class="w-12 h-12 rounded-xl bg-gradient-to-br from-green-500 to-green-700 flex items-center justify-center group-hover:scale-110 transition-transform flex-shrink-0">
+                            <i class="fas fa-city text-white"></i>
+                        </div>
+
+                        <div class="flex-1 min-w-0">
+                            <!-- UT Name -->
+                            <h3
+                                class="font-semibold text-gray-900 dark:text-white text-sm mb-1 group-hover:text-green-600 transition-colors truncate">
+                                {{ ut.name }}
+                            </h3>
+
+                            <!-- Type & News Count -->
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs text-gray-500 dark:text-gray-400">{{ ut.type }}</span>
+                                <span class="badge-live flex items-center text-xs text-green-600 dark:text-green-400">
+                                    <span class="w-2 h-2 bg-green-500 rounded-full mr-1"></span>
+                                    {{ ut.news_count }}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </a>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="text-center py-12 bg-gray-50 dark:bg-dark-card rounded-2xl">
+                <i class="fas fa-search text-4xl text-gray-300 dark:text-gray-600 mb-4"></i>
+                <p class="text-gray-500 dark:text-gray-400">No union territories found matching "{{ search_query }}"</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Quick Stats -->
+        <div class="bg-gradient-to-r from-orange-500 via-white to-green-600 p-1 rounded-2xl">
+            <div class="bg-white dark:bg-dark-card rounded-2xl p-6">
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                    <div>
+                        <p class="text-3xl font-bold text-orange-600">{{ total_states }}</p>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">States</p>
+                    </div>
+                    <div>
+                        <p class="text-3xl font-bold text-green-600">{{ total_uts }}</p>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">Union Territories</p>
+                    </div>
+                    <div>
+                        <p class="text-3xl font-bold text-blue-600">1.4B+</p>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">Population</p>
+                    </div>
+                    <div>
+                        <p class="text-3xl font-bold text-purple-600">22</p>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">Official Languages</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Real-time search filtering
+    const searchInput = document.querySelector('input[name="q"]');
+    let debounceTimer;
+
+    if (searchInput) {
+        searchInput.addEventListener('input', (e) => {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => {
+                if (e.target.value.length >= 2 || e.target.value.length === 0) {
+                    e.target.form.submit();
+                }
+            }, 500);
+        });
+    }
+</script>
+{% endblock %}

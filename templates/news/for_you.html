@@ -1,0 +1,467 @@
+{% extends "base.html" %}
+
+{% block title %}For You - InstaNews{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Skeleton Loader Animation */
+    .skeleton {
+        background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+        background-size: 200% 100%;
+        animation: skeleton-loading 1.5s infinite;
+    }
+
+    .dark .skeleton {
+        background: linear-gradient(90deg, #374151 25%, #4b5563 50%, #374151 75%);
+        background-size: 200% 100%;
+    }
+
+    @keyframes skeleton-loading {
+        0% {
+            background-position: 200% 0;
+        }
+
+        100% {
+            background-position: -200% 0;
+        }
+    }
+
+    /* Card animations */
+    .news-card {
+        opacity: 0;
+        transform: translateY(20px);
+        animation: fadeSlideIn 0.5s ease forwards;
+    }
+
+    @keyframes fadeSlideIn {
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .news-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 20px 40px -12px rgba(0, 0, 0, 0.15);
+    }
+
+    /* Stagger animation delays */
+    .news-card:nth-child(1) {
+        animation-delay: 0.1s;
+    }
+
+    .news-card:nth-child(2) {
+        animation-delay: 0.15s;
+    }
+
+    .news-card:nth-child(3) {
+        animation-delay: 0.2s;
+    }
+
+    .news-card:nth-child(4) {
+        animation-delay: 0.25s;
+    }
+
+    .news-card:nth-child(5) {
+        animation-delay: 0.3s;
+    }
+
+    .news-card:nth-child(6) {
+        animation-delay: 0.35s;
+    }
+
+    .news-card:nth-child(7) {
+        animation-delay: 0.4s;
+    }
+
+    .news-card:nth-child(8) {
+        animation-delay: 0.45s;
+    }
+
+    .news-card:nth-child(9) {
+        animation-delay: 0.5s;
+    }
+
+    .news-card:nth-child(10) {
+        animation-delay: 0.55s;
+    }
+
+    .news-card:nth-child(11) {
+        animation-delay: 0.6s;
+    }
+
+    .news-card:nth-child(12) {
+        animation-delay: 0.65s;
+    }
+
+    /* Score badge */
+    .score-badge {
+        font-size: 0.65rem;
+        padding: 2px 6px;
+    }
+
+    /* Loading spinner */
+    .loading-spinner {
+        border: 3px solid transparent;
+        border-top-color: #3b82f6;
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+        to {
+            transform: rotate(360deg);
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 dark:bg-dark-bg">
+    <!-- Hero Header -->
+    <div class="bg-gradient-to-r from-purple-600 via-pink-600 to-red-500">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+            <div class="text-center">
+                <div
+                    class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-white/20 backdrop-blur-lg mb-4">
+                    <i class="fas fa-magic text-white text-2xl"></i>
+                </div>
+                <h1 class="text-4xl md:text-5xl font-bold text-white mb-2">
+                    For You
+                </h1>
+                <p class="text-white/80 max-w-lg mx-auto">
+                    {% if is_cold_start %}
+                    <span class="flex items-center justify-center">
+                        <i class="fas fa-fire mr-2"></i>
+                        Trending stories tailored just for you
+                    </span>
+                    {% else %}
+                    <span class="flex items-center justify-center">
+                        <i class="fas fa-brain mr-2"></i>
+                        Personalized based on your interests
+                    </span>
+                    {% endif %}
+                </p>
+                {% if is_cold_start and not user.is_authenticated %}
+                <a href="{% url 'accounts:login' %}"
+                    class="mt-4 inline-block px-6 py-2 bg-white/20 hover:bg-white/30 text-white rounded-full transition-all">
+                    <i class="fas fa-sign-in-alt mr-2"></i>Login for personalized feed
+                </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Feed Container -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Feed Info Badge -->
+        <div class="flex items-center justify-between mb-6">
+            <div class="flex items-center space-x-3">
+                <span
+                    class="px-3 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded-full text-sm font-medium">
+                    {% if is_cold_start %}
+                    <i class="fas fa-fire mr-1"></i> Trending
+                    {% else %}
+                    <i class="fas fa-heart mr-1"></i> Personalized
+                    {% endif %}
+                </span>
+                <span class="text-sm text-gray-500 dark:text-gray-400">
+                    Updated just now
+                </span>
+            </div>
+            <button onclick="refreshFeed()"
+                class="px-4 py-2 bg-gray-100 dark:bg-dark-card hover:bg-gray-200 dark:hover:bg-dark-secondary rounded-lg transition-all text-sm">
+                <i class="fas fa-sync-alt mr-2"></i>Refresh
+            </button>
+        </div>
+
+        <!-- News Grid -->
+        <div id="news-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {% for article in articles %}
+            <article
+                class="news-card bg-white dark:bg-dark-card rounded-2xl shadow-md overflow-hidden transition-all duration-300"
+                data-url="{{ article.url }}" data-source="{{ article.source }}" onclick="trackClick(this)">
+                {% if article.image %}
+                <img src="{{ article.image }}" alt="{{ article.title }}" class="w-full h-48 object-cover"
+                    onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" loading="lazy">
+                <div
+                    class="w-full h-48 bg-gradient-to-br from-purple-500 to-pink-600 items-center justify-center hidden">
+                    <i class="fas fa-newspaper text-white text-4xl"></i>
+                </div>
+                {% else %}
+                <div class="w-full h-48 bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center">
+                    <i class="fas fa-newspaper text-white text-4xl"></i>
+                </div>
+                {% endif %}
+                <div class="p-5">
+                    <div class="flex items-center justify-between mb-3">
+                        <span
+                            class="text-xs font-medium text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-900/30 px-2 py-1 rounded-full truncate max-w-[150px]">
+                            {{ article.source }}
+                        </span>
+                        <div class="flex items-center space-x-2">
+                            {% if article.reason %}
+                            <span
+                                class="score-badge bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 rounded-full">
+                                {{ article.reason }}
+                            </span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-2 line-clamp-2">
+                        {{ article.title }}
+                    </h3>
+                    <p class="text-gray-600 dark:text-gray-400 text-sm mb-4 line-clamp-3">
+                        {{ article.description|truncatewords:20 }}
+                    </p>
+                    <div class="flex items-center justify-between">
+                        {% if article.published_at %}
+                        <span class="text-xs text-gray-500 dark:text-gray-400">
+                            <i class="far fa-clock mr-1"></i>{{ article.published_at|slice:":10" }}
+                        </span>
+                        {% endif %}
+                        <a href="{{ article.url }}" target="_blank" rel="noopener noreferrer"
+                            class="text-purple-600 hover:text-purple-700 text-sm font-medium">
+                            Read More <i class="fas fa-external-link-alt ml-1"></i>
+                        </a>
+                    </div>
+                </div>
+            </article>
+            {% empty %}
+            <!-- Show skeleton loaders if no articles -->
+            {% for i in "123456" %}
+            <div class="bg-white dark:bg-dark-card rounded-2xl shadow-md overflow-hidden">
+                <div class="skeleton w-full h-48"></div>
+                <div class="p-5">
+                    <div class="flex items-center justify-between mb-3">
+                        <div class="skeleton h-6 w-24 rounded-full"></div>
+                        <div class="skeleton h-5 w-16 rounded-full"></div>
+                    </div>
+                    <div class="skeleton h-6 w-full rounded mb-2"></div>
+                    <div class="skeleton h-6 w-3/4 rounded mb-4"></div>
+                    <div class="skeleton h-4 w-full rounded mb-2"></div>
+                    <div class="skeleton h-4 w-2/3 rounded"></div>
+                </div>
+            </div>
+            {% endfor %}
+            {% endfor %}
+        </div>
+
+        <!-- Loading More Indicator -->
+        <div id="loading-more" class="hidden py-8 flex justify-center">
+            <div class="loading-spinner"></div>
+        </div>
+
+        <!-- End of Feed Message -->
+        <div id="end-of-feed" class="hidden py-12 text-center">
+            <div
+                class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-100 dark:bg-dark-secondary mb-4">
+                <i class="fas fa-check text-2xl text-green-500"></i>
+            </div>
+            <p class="text-gray-500 dark:text-gray-400">You're all caught up!</p>
+        </div>
+
+        <!-- Scroll to top button -->
+        <button id="scroll-top" onclick="scrollToTop()"
+            class="fixed bottom-8 right-8 p-4 bg-purple-600 text-white rounded-full shadow-lg opacity-0 pointer-events-none transition-all duration-300 hover:bg-purple-700 z-50">
+            <i class="fas fa-arrow-up"></i>
+        </button>
+    </div>
+</div>
+
+<!-- Skeleton Card Template for AJAX -->
+<template id="skeleton-template">
+    <div class="bg-white dark:bg-dark-card rounded-2xl shadow-md overflow-hidden">
+        <div class="skeleton w-full h-48"></div>
+        <div class="p-5">
+            <div class="flex items-center justify-between mb-3">
+                <div class="skeleton h-6 w-24 rounded-full"></div>
+                <div class="skeleton h-5 w-16 rounded-full"></div>
+            </div>
+            <div class="skeleton h-6 w-full rounded mb-2"></div>
+            <div class="skeleton h-6 w-3/4 rounded mb-4"></div>
+            <div class="skeleton h-4 w-full rounded mb-2"></div>
+            <div class="skeleton h-4 w-2/3 rounded"></div>
+        </div>
+    </div>
+</template>
+
+<!-- News Card Template for AJAX -->
+<template id="news-card-template">
+    <article
+        class="news-card bg-white dark:bg-dark-card rounded-2xl shadow-md overflow-hidden transition-all duration-300">
+        <img class="card-image w-full h-48 object-cover" loading="lazy">
+        <div
+            class="card-placeholder w-full h-48 bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center hidden">
+            <i class="fas fa-newspaper text-white text-4xl"></i>
+        </div>
+        <div class="p-5">
+            <div class="flex items-center justify-between mb-3">
+                <span
+                    class="card-source text-xs font-medium text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-900/30 px-2 py-1 rounded-full truncate max-w-[150px]"></span>
+                <span
+                    class="card-reason score-badge bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 rounded-full"></span>
+            </div>
+            <h3 class="card-title text-lg font-bold text-gray-900 dark:text-white mb-2 line-clamp-2"></h3>
+            <p class="card-description text-gray-600 dark:text-gray-400 text-sm mb-4 line-clamp-3"></p>
+            <div class="flex items-center justify-between">
+                <span class="card-date text-xs text-gray-500 dark:text-gray-400"></span>
+                <a class="card-link text-purple-600 hover:text-purple-700 text-sm font-medium" target="_blank"
+                    rel="noopener noreferrer">
+                    Read More <i class="fas fa-external-link-alt ml-1"></i>
+                </a>
+            </div>
+        </div>
+    </article>
+</template>
+
+<script>
+    let currentPage = 1;
+    let isLoading = false;
+    let hasMore = {{ has_more| yesno: "true,false" }};
+
+    // Infinite scroll
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting && !isLoading && hasMore) {
+                loadMoreNews();
+            }
+        });
+    }, { rootMargin: '200px' });
+
+    // Observe loading indicator
+    const loadingEl = document.getElementById('loading-more');
+    if (loadingEl) {
+        observer.observe(loadingEl);
+    }
+
+    async function loadMoreNews() {
+        if (isLoading || !hasMore) return;
+
+        isLoading = true;
+        currentPage++;
+
+        // Show loading spinner
+        loadingEl.classList.remove('hidden');
+        loadingEl.classList.add('flex');
+
+        try {
+            const response = await fetch(`/api/for-you/?page=${currentPage}`);
+            const data = await response.json();
+
+            if (data.success && data.articles.length > 0) {
+                appendNewsCards(data.articles);
+                hasMore = data.has_more;
+            } else {
+                hasMore = false;
+            }
+
+            if (!hasMore) {
+                document.getElementById('end-of-feed').classList.remove('hidden');
+            }
+        } catch (error) {
+            console.error('Failed to load more news:', error);
+        } finally {
+            isLoading = false;
+            loadingEl.classList.add('hidden');
+            loadingEl.classList.remove('flex');
+        }
+    }
+
+    function appendNewsCards(articles) {
+        const grid = document.getElementById('news-grid');
+        const template = document.getElementById('news-card-template');
+
+        articles.forEach((article, index) => {
+            const card = template.content.cloneNode(true);
+            const cardEl = card.querySelector('article');
+
+            // Set animation delay for stagger effect
+            cardEl.style.animationDelay = `${index * 0.1}s`;
+
+            // Set image
+            const img = card.querySelector('.card-image');
+            const placeholder = card.querySelector('.card-placeholder');
+            if (article.image) {
+                img.src = article.image;
+                img.alt = article.title;
+                img.onerror = function () {
+                    this.style.display = 'none';
+                    placeholder.classList.remove('hidden');
+                    placeholder.classList.add('flex');
+                };
+            } else {
+                img.style.display = 'none';
+                placeholder.classList.remove('hidden');
+                placeholder.classList.add('flex');
+            }
+
+            // Set content
+            card.querySelector('.card-source').textContent = article.source || 'News';
+            card.querySelector('.card-reason').textContent = article.reason || 'For You';
+            card.querySelector('.card-title').textContent = article.title;
+            card.querySelector('.card-description').textContent = article.description || '';
+
+            if (article.published_at) {
+                card.querySelector('.card-date').innerHTML = `<i class="far fa-clock mr-1"></i>${article.published_at.slice(0, 10)}`;
+            }
+
+            card.querySelector('.card-link').href = article.url || '#';
+
+            grid.appendChild(card);
+        });
+    }
+
+    function refreshFeed() {
+        window.location.reload();
+    }
+
+    function trackClick(cardEl) {
+        const source = cardEl.dataset.source;
+
+        // Track interaction for personalization
+        fetch('/api/track-interaction/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({
+                type: 'click',
+                data: { source: source }
+            })
+        }).catch(console.error);
+    }
+
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    // Scroll to top button visibility
+    window.addEventListener('scroll', () => {
+        const scrollTopBtn = document.getElementById('scroll-top');
+        if (window.scrollY > 500) {
+            scrollTopBtn.classList.remove('opacity-0', 'pointer-events-none');
+        } else {
+            scrollTopBtn.classList.add('opacity-0', 'pointer-events-none');
+        }
+    });
+
+    function scrollToTop() {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+</script>
+{% endblock %}

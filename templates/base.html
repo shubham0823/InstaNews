@@ -1,37 +1,41 @@
 <!DOCTYPE html>
 <html lang="en" class="light">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}NewsHub{% endblock %}</title>
+    <title>{% block title %}InstaNews{% endblock %}</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
-        // Dark mode configuration
         tailwind.config = {
             darkMode: 'class',
             theme: {
                 extend: {
+                    fontFamily: {
+                        'inter': ['Inter', 'sans-serif'],
+                    },
                     colors: {
                         dark: {
-                            bg: '#1a1a1a',
-                            text: '#ffffff',
-                            secondary: '#374151'
+                            bg: '#0f172a',
+                            card: '#1e293b',
+                            text: '#f1f5f9',
+                            secondary: '#334155'
                         }
                     }
                 }
             }
         }
 
-        // Check for saved theme preference or use system preference
         if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
             document.documentElement.classList.add('dark')
         } else {
             document.documentElement.classList.remove('dark')
         }
 
-        // Function to toggle theme
         function toggleTheme() {
             if (document.documentElement.classList.contains('dark')) {
                 document.documentElement.classList.remove('dark')
@@ -43,152 +47,244 @@
         }
     </script>
     <style>
-        /* Dark mode styles */
-        .dark body {
-            background-color: theme('colors.dark.bg');
-            color: theme('colors.dark.text');
+        body {
+            font-family: 'Inter', sans-serif;
         }
-        .dark .bg-white {
-            background-color: theme('colors.dark.bg');
+
+        /* Glassmorphism Navbar */
+        .glass-navbar {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.3);
         }
-        .dark .text-gray-800 {
-            color: theme('colors.dark.text');
+
+        .dark .glass-navbar {
+            background: rgba(15, 23, 42, 0.85);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
         }
-        .dark .border-gray-200 {
-            border-color: theme('colors.dark.secondary');
+
+        /* Nav Link Animation */
+        .nav-link {
+            position: relative;
+            transition: all 0.3s ease;
+        }
+
+        .nav-link::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 50%;
+            width: 0;
+            height: 2px;
+            background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+            transition: all 0.3s ease;
+            transform: translateX(-50%);
+            border-radius: 2px;
+        }
+
+        .nav-link:hover::after,
+        .nav-link.active::after {
+            width: 100%;
+        }
+
+        .nav-link:hover {
+            color: #3b82f6;
+        }
+
+        .nav-link.active {
+            color: #3b82f6;
+            font-weight: 600;
+        }
+
+        /* Mobile menu animation */
+        .mobile-menu {
+            transform: translateY(-100%);
+            opacity: 0;
+            transition: all 0.3s ease;
+        }
+
+        .mobile-menu.open {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        /* Page transition */
+        .page-enter {
+            animation: fadeSlideIn 0.4s ease-out;
+        }
+
+        @keyframes fadeSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Smooth scrolling */
+        html {
+            scroll-behavior: smooth;
         }
     </style>
     {% block extra_css %}{% endblock %}
 </head>
-<body class="bg-gray-100 dark:bg-dark-bg">
-    <!-- Navigation -->
-    <nav class="bg-white dark:bg-dark-bg border-b border-gray-200 dark:border-dark-secondary fixed w-full z-30 top-0 transition-all duration-300 shadow-sm hover:shadow-md">
+
+<body class="bg-gray-50 dark:bg-dark-bg min-h-screen">
+    <!-- Glassmorphism Navigation -->
+    <nav class="glass-navbar fixed w-full z-50 top-0 transition-all duration-300">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between h-16">
-                <!-- Left section with logo and navigation -->
+                <!-- Logo & Primary Nav -->
                 <div class="flex items-center">
-                    <div class="flex-shrink-0">
-                        <a href="{% url 'news:landing_page' %}" class="text-2xl font-bold text-blue-600 hover:text-blue-700 transition-colors duration-200">NewsHub</a>
-                    </div>
-                    <div class="hidden sm:ml-6 sm:flex sm:space-x-8">
+                    <!-- Logo -->
+                    <a href="{% url 'news:landing_page' %}" class="flex items-center space-x-2 group">
+                        <div
+                            class="w-9 h-9 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center transform group-hover:scale-110 transition-all duration-300">
+                            <i class="fas fa-newspaper text-white text-sm"></i>
+                        </div>
+                        <span
+                            class="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">InstaNews</span>
+                    </a>
+
+                    <!-- Desktop Navigation -->
+                    <div class="hidden md:flex items-center ml-10 space-x-1">
                         <a href="{% url 'news:landing_page' %}"
-                           class="border-transparent text-gray-500 hover:text-blue-600 hover:border-blue-600 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium transition-all duration-200">
-                            Home
+                            class="nav-link px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-dark-secondary">
+                            <i class="fas fa-home mr-2"></i>Home
                         </a>
                         <a href="{% url 'news:explore' %}"
-                           class="border-transparent text-gray-500 hover:text-blue-600 hover:border-blue-600 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium transition-all duration-200">
-                            Explore
+                            class="nav-link px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-dark-secondary">
+                            <i class="fas fa-compass mr-2"></i>Explore
                         </a>
-                        {% if user.is_authenticated %}
-                        <a href="{% url 'news:create_news' %}"
-                           class="border-transparent text-gray-500 hover:text-blue-600 hover:border-blue-600 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium transition-all duration-200">
-                            Create News
+                        <a href="{% url 'news:india_news_hub' %}"
+                            class="nav-link px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-dark-secondary">
+                            <span class="mr-2">🇮🇳</span>India News
                         </a>
-                        {% endif %}
+                        <a href="{% url 'news:world_news_hub' %}"
+                            class="nav-link px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-dark-secondary">
+                            <i class="fas fa-globe mr-2"></i>World News
+                        </a>
                     </div>
                 </div>
 
-                <!-- Centered search form -->
-                <div class="flex-1 flex items-center justify-center max-w-xl px-2">
+                <!-- Search Bar -->
+                <div class="hidden md:flex flex-1 items-center justify-center max-w-md px-4">
                     <form class="w-full" action="{% url 'news:search_news' %}" method="GET">
-                        <div class="flex">
-                            <select name="type" class="rounded-l-md border border-gray-300 dark:border-dark-secondary dark:bg-dark-bg dark:text-dark-text px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200">
-                                <option value="news">News</option>
-                                <option value="users">Users</option>
-                            </select>
-                            <input type="text" name="q" placeholder="Search..." class="flex-1 border-y border-gray-300 dark:border-dark-secondary dark:bg-dark-bg dark:text-dark-text px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200">
-                            <button type="submit" class="rounded-r-md bg-blue-600 text-white px-4 py-2 hover:bg-blue-700 transform hover:scale-105 transition-all duration-200">
-                                Search
-                            </button>
+                        <div class="relative">
+                            <input type="text" name="q" placeholder="Search news, @users, #hashtags..."
+                                class="w-full pl-10 pr-4 py-2 bg-gray-100 dark:bg-dark-secondary border-0 rounded-full text-sm focus:ring-2 focus:ring-blue-500 focus:bg-white dark:focus:bg-dark-card transition-all duration-200 dark:text-white">
+                            <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
                         </div>
                     </form>
                 </div>
 
-                <!-- Right section with user menu -->
-                <div class="flex items-center">
-                    <!-- Theme toggle -->
-                    <button onclick="toggleTheme()" class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-dark-secondary mr-4 transform hover:scale-110 transition-all duration-200">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 dark:text-dark-text" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
-                        </svg>
+                <!-- Right Section -->
+                <div class="flex items-center space-x-3">
+                    <!-- Theme Toggle -->
+                    <button onclick="toggleTheme()"
+                        class="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-dark-secondary transition-all duration-200">
+                        <i class="fas fa-moon text-gray-600 dark:text-yellow-400 dark:hidden"></i>
+                        <i class="fas fa-sun text-yellow-400 hidden dark:block"></i>
                     </button>
 
                     {% if user.is_authenticated %}
                     <!-- Notifications -->
-                    <div class="ml-3 relative">
-                        <a href="{% url 'news:notifications' %}"
-                           class="bg-white p-1 rounded-full text-gray-400 hover:text-blue-600 transform hover:scale-110 transition-all duration-200">
-                            <span class="sr-only">View notifications</span>
-                            <i class="fas fa-bell"></i>
-                        </a>
-                    </div>
+                    <a href="{% url 'news:notifications' %}"
+                        class="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-dark-secondary transition-all duration-200 relative">
+                        <i class="fas fa-bell text-gray-600 dark:text-gray-300"></i>
+                        <span class="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full"></span>
+                    </a>
 
-                    <!-- Profile dropdown -->
-                    <div class="ml-3 relative">
-                        <a href="{% url 'news:user_profile' user.username %}"
-                           class="flex items-center space-x-2 text-gray-500 hover:text-blue-600 transform hover:scale-105 transition-all duration-200">
-                            <img class="h-8 w-8 rounded-full object-cover ring-2 ring-transparent hover:ring-blue-500 transition-all duration-200"
-                                 src="{{ user.profile.avatar.url }}"
-                                 alt="{{ user.username }}">
-                            <span class="text-sm font-medium">{{ user.username }}</span>
-                        </a>
-                    </div>
+                    <!-- Create Post -->
+                    <a href="{% url 'news:create_news' %}"
+                        class="hidden sm:flex items-center px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white text-sm font-medium rounded-full hover:shadow-lg hover:scale-105 transition-all duration-200">
+                        <i class="fas fa-plus mr-2"></i>Create
+                    </a>
+
+                    <!-- Profile -->
+                    <a href="{% url 'news:user_profile' user.username %}" class="flex items-center space-x-2 group">
+                        <img src="{{ user.profile.avatar.url }}" alt="{{ user.username }}"
+                            class="w-9 h-9 rounded-full object-cover ring-2 ring-transparent group-hover:ring-blue-500 transition-all duration-200">
+                    </a>
 
                     <!-- Logout -->
-                    <div class="ml-3 relative">
-                        <a href="{% url 'accounts:logout' %}"
-                           class="text-gray-500 hover:text-red-600 text-sm font-medium transition-colors duration-200">
-                            Logout
-                        </a>
-                    </div>
+                    <a href="{% url 'accounts:logout' %}"
+                        class="p-2 rounded-full hover:bg-red-50 dark:hover:bg-red-900/20 text-gray-600 hover:text-red-600 transition-all duration-200">
+                        <i class="fas fa-sign-out-alt"></i>
+                    </a>
                     {% else %}
                     <a href="{% url 'accounts:login' %}"
-                       class="text-gray-500 hover:text-blue-600 text-sm font-medium transition-colors duration-200">Login</a>
+                        class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-blue-600 transition-all duration-200">
+                        Login
+                    </a>
                     <a href="{% url 'accounts:register' %}"
-                       class="ml-4 text-white bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-md text-sm font-medium transform hover:scale-105 transition-all duration-200">Sign up</a>
+                        class="px-5 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white text-sm font-medium rounded-full hover:shadow-lg hover:scale-105 transition-all duration-200">
+                        Sign Up
+                    </a>
                     {% endif %}
+
+                    <!-- Mobile Menu Button -->
+                    <button id="mobile-menu-btn"
+                        class="md:hidden p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-dark-secondary transition-all duration-200">
+                        <i class="fas fa-bars text-gray-600 dark:text-gray-300"></i>
+                    </button>
                 </div>
+            </div>
+        </div>
+
+        <!-- Mobile Menu -->
+        <div id="mobile-menu"
+            class="mobile-menu md:hidden bg-white dark:bg-dark-card border-t border-gray-100 dark:border-dark-secondary">
+            <div class="px-4 py-4 space-y-2">
+                <a href="{% url 'news:landing_page' %}"
+                    class="flex items-center px-4 py-3 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-dark-secondary">
+                    <i class="fas fa-home w-6"></i>Home
+                </a>
+                <a href="{% url 'news:explore' %}"
+                    class="flex items-center px-4 py-3 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-dark-secondary">
+                    <i class="fas fa-compass w-6"></i>Explore
+                </a>
+                <a href="{% url 'news:search_news' %}"
+                    class="flex items-center px-4 py-3 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-dark-secondary">
+                    <i class="fas fa-search w-6"></i>Search
+                </a>
+                <a href="{% url 'news:india_news_hub' %}"
+                    class="flex items-center px-4 py-3 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-dark-secondary">
+                    <span class="w-6">🇮🇳</span>India News
+                </a>
+                <a href="{% url 'news:world_news_hub' %}"
+                    class="flex items-center px-4 py-3 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-dark-secondary">
+                    <i class="fas fa-globe w-6"></i>World News
+                </a>
             </div>
         </div>
     </nav>
 
-    <!-- Main Content with padding for fixed navbar -->
+    <!-- Main Content -->
     <div class="pt-16">
-        <main class="max-w-full mx-0">
+        <main class="page-enter">
             {% if messages %}
-            <div class="mb-8 px-4">
+            <div class="max-w-7xl mx-auto px-4 py-4">
                 {% for message in messages %}
-                <div class="rounded-md p-4 {% if message.tags == 'success' %}bg-green-50{% elif message.tags == 'error' %}bg-red-50{% else %}bg-blue-50{% endif %} mb-4">
-                    <div class="flex">
-                        <div class="flex-shrink-0">
-                            {% if message.tags == 'success' %}
-                            <svg class="h-5 w-5 text-green-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"
-                                 fill="currentColor">
-                                <path fill-rule="evenodd"
-                                      d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                                      clip-rule="evenodd"/>
-                            </svg>
-                            {% elif message.tags == 'error' %}
-                            <svg class="h-5 w-5 text-red-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"
-                                 fill="currentColor">
-                                <path fill-rule="evenodd"
-                                      d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-                                      clip-rule="evenodd"/>
-                            </svg>
-                            {% else %}
-                            <svg class="h-5 w-5 text-blue-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"
-                                 fill="currentColor">
-                                <path fill-rule="evenodd"
-                                      d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
-                                      clip-rule="evenodd"/>
-                            </svg>
-                            {% endif %}
-                        </div>
-                        <div class="ml-3">
-                            <p class="text-sm font-medium {% if message.tags == 'success' %}text-green-800{% elif message.tags == 'error' %}text-red-800{% else %}text-blue-800{% endif %}">
-                                {{ message }}
-                            </p>
-                        </div>
+                <div
+                    class="rounded-xl p-4 mb-4 {% if message.tags == 'success' %}bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800{% elif message.tags == 'error' %}bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800{% else %}bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800{% endif %}">
+                    <div class="flex items-center">
+                        {% if message.tags == 'success' %}
+                        <i class="fas fa-check-circle text-green-500 mr-3"></i>
+                        {% elif message.tags == 'error' %}
+                        <i class="fas fa-exclamation-circle text-red-500 mr-3"></i>
+                        {% else %}
+                        <i class="fas fa-info-circle text-blue-500 mr-3"></i>
+                        {% endif %}
+                        <p
+                            class="text-sm font-medium {% if message.tags == 'success' %}text-green-800 dark:text-green-300{% elif message.tags == 'error' %}text-red-800 dark:text-red-300{% else %}text-blue-800 dark:text-blue-300{% endif %}">
+                            {{ message }}
+                        </p>
                     </div>
                 </div>
                 {% endfor %}
@@ -200,25 +296,32 @@
 
     {% block extra_js %}{% endblock %}
     <script>
-        // Profile dropdown toggle
-        const userMenuButton = document.getElementById('user-menu-button');
-        const userMenu = document.getElementById('user-menu');
-        
-        if (userMenuButton && userMenu) {
-            userMenuButton.addEventListener('click', function() {
-                const expanded = this.getAttribute('aria-expanded') === 'true';
-                this.setAttribute('aria-expanded', !expanded);
-                userMenu.classList.toggle('hidden');
-            });
+        // Mobile menu toggle
+        const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+        const mobileMenu = document.getElementById('mobile-menu');
 
-            // Close the dropdown when clicking outside
-            document.addEventListener('click', function(event) {
-                if (!userMenuButton.contains(event.target) && !userMenu.contains(event.target)) {
-                    userMenuButton.setAttribute('aria-expanded', 'false');
-                    userMenu.classList.add('hidden');
+        if (mobileMenuBtn && mobileMenu) {
+            mobileMenuBtn.addEventListener('click', () => {
+                mobileMenu.classList.toggle('open');
+                const icon = mobileMenuBtn.querySelector('i');
+                if (mobileMenu.classList.contains('open')) {
+                    icon.classList.remove('fa-bars');
+                    icon.classList.add('fa-times');
+                } else {
+                    icon.classList.remove('fa-times');
+                    icon.classList.add('fa-bars');
                 }
             });
         }
+
+        // Active nav link
+        const currentPath = window.location.pathname;
+        document.querySelectorAll('.nav-link').forEach(link => {
+            if (link.getAttribute('href') === currentPath) {
+                link.classList.add('active');
+            }
+        });
     </script>
 </body>
-</html> 
+
+</html>
