@@ -4,121 +4,112 @@
 
 {% block content %}
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-    <!-- Profile Header with Cover Image -->
-    <div class="bg-white rounded-lg shadow-lg overflow-hidden">
-        <div class="relative h-48 bg-gradient-to-r from-blue-500 to-blue-600">
-            <div class="absolute bottom-0 left-0 right-0 px-6 py-4 transform translate-y-1/2">
-                <div class="flex items-end">
+    <!-- Premium Profile Header -->
+    <div class="relative w-full rounded-3xl overflow-hidden shadow-sm mb-8 bg-white dark:bg-dark-card border border-gray-100 dark:border-gray-800">
+        <!-- Cover Photo -->
+        <div class="h-64 w-full bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 relative">
+            <div class="absolute inset-0 bg-black/10"></div>
+        </div>
+        
+        <!-- Profile Info Area -->
+        <div class="px-8 pb-8 relative">
+            <!-- Avatar & Actions Wrapper -->
+            <div class="flex justify-between items-end -mt-16 mb-4">
+                <div class="relative group">
                     <img src="{{ profile_user.profile.avatar.url }}" alt="{{ profile_user.username }}" 
-                         class="h-32 w-32 rounded-full border-4 border-white object-cover">
-                    <div class="ml-6 pb-4">
-                        <h1 class="text-3xl font-bold text-white">{{ profile_user.username }}</h1>
-                        <p class="text-blue-100">Joined {{ profile_user.date_joined|date:"F Y" }}</p>
-                    </div>
+                         class="h-32 w-32 rounded-full border-4 border-white dark:border-dark-card object-cover shadow-lg bg-white dark:bg-gray-800">
+                </div>
+                
+                <div class="pb-2 flex space-x-3">
+                    {% if user.is_authenticated and user != profile_user %}
+                    <button id="followButton" 
+                            data-username="{{ profile_user.username }}"
+                            class="inline-flex items-center px-8 py-2.5 border border-transparent text-sm font-bold rounded-full shadow-sm text-white transition-all duration-300 transform hover:scale-105 active:scale-95 {% if is_following %}bg-gray-800 hover:bg-gray-900 dark:bg-gray-700 dark:hover:bg-gray-600{% else %}bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700{% endif %}">
+                        {% if is_following %}
+                            <i class="fas fa-check mr-2"></i>Following
+                        {% else %}
+                            <i class="fas fa-user-plus mr-2"></i>Follow
+                        {% endif %}
+                    </button>
+                    {% endif %}
+                    
+                    {% if user == profile_user %}
+                    <a href="{% url 'accounts:profile_edit' %}" class="inline-flex items-center px-6 py-2.5 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200 text-sm font-bold rounded-full transition-all duration-200 shadow-sm border border-gray-200 dark:border-gray-700">
+                        <i class="fas fa-cog mr-2"></i>Edit Profile
+                    </a>
+                    {% endif %}
                 </div>
             </div>
-        </div>
-
-        <!-- Profile Stats -->
-        <div class="mt-20 px-6 py-6 border-b border-gray-200">
-            <div class="flex justify-between items-center">
-                <div class="flex space-x-8">
-                    <a href="{% url 'news:followers_list' profile_user.username %}" class="text-center hover:text-blue-600 transition-colors duration-200">
-                        <div class="text-2xl font-bold" id="followerCount">{{ followers_count }}</div>
-                        <div class="text-gray-600">Followers</div>
-                    </a>
-                    <a href="{% url 'news:following_list' profile_user.username %}" class="text-center hover:text-blue-600 transition-colors duration-200">
-                        <div class="text-2xl font-bold">{{ following_count }}</div>
-                        <div class="text-gray-600">Following</div>
-                    </a>
-                    <div class="text-center">
-                        <div class="text-2xl font-bold">{{ news_count }}</div>
-                        <div class="text-gray-600">Posts</div>
-                    </div>
-                </div>
-                {% if user.is_authenticated and user != profile_user %}
-                <button id="followButton" 
-                        data-username="{{ profile_user.username }}"
-                        class="inline-flex items-center px-6 py-2 border border-transparent text-base font-medium rounded-full shadow-sm text-white {% if is_following %}bg-gray-600 hover:bg-gray-700{% else %}bg-blue-600 hover:bg-blue-700{% endif %} transition-all duration-200 transform hover:scale-105">
-                    {% if is_following %}
-                        Following
-                    {% else %}
-                        Follow
-                    {% endif %}
-                </button>
+            
+            <!-- User Details -->
+            <div class="mb-4">
+                <h1 class="text-3xl font-extrabold text-gray-900 dark:text-white">{{ profile_user.username }}</h1>
+                <p class="text-gray-500 dark:text-gray-400 font-medium">Joined {{ profile_user.date_joined|date:"F Y" }}</p>
+                {% if profile_user.profile.bio %}
+                <p class="mt-4 text-gray-700 dark:text-gray-300 max-w-2xl leading-relaxed">{{ profile_user.profile.bio }}</p>
                 {% endif %}
             </div>
-            {% if profile_user.profile.bio %}
-            <p class="mt-4 text-gray-600">{{ profile_user.profile.bio }}</p>
-            {% endif %}
-        </div>
 
-        <!-- User's Posts -->
-        <div class="px-6 py-6">
-            <h2 class="text-2xl font-bold mb-6">Posts</h2>
-            <div class="grid grid-cols-1 gap-6">
+            <!-- Stats row (acts as tabs trigger) -->
+            <div class="flex flex-wrap gap-8 mt-6 pt-6 border-t border-gray-100 dark:border-gray-800">
+                <button onclick="switchTab('posts')" id="tab-btn-posts" class="text-left group outline-none relative pb-4">
+                    <div class="text-2xl font-bold text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">{{ news_items.paginator.count|default:0 }}</div>
+                    <div class="text-sm font-medium uppercase tracking-wider transition-colors text-blue-600 dark:text-blue-400" id="tab-label-posts">Posts</div>
+                    <div class="absolute bottom-0 left-0 w-full h-1 bg-blue-600 dark:bg-blue-400 rounded-t-lg transition-transform" id="tab-indicator-posts"></div>
+                </button>
+                <button onclick="switchTab('followers')" id="tab-btn-followers" class="text-left group outline-none relative pb-4">
+                    <div class="text-2xl font-bold text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors" id="followerCount">{{ followers_count }}</div>
+                    <div class="text-sm font-medium uppercase tracking-wider transition-colors text-gray-500 group-hover:text-blue-600 dark:group-hover:text-blue-400" id="tab-label-followers">Followers</div>
+                    <div class="absolute bottom-0 left-0 w-full h-1 bg-transparent rounded-t-lg transition-all duration-300" id="tab-indicator-followers"></div>
+                </button>
+                <button onclick="switchTab('following')" id="tab-btn-following" class="text-left group outline-none relative pb-4">
+                    <div class="text-2xl font-bold text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">{{ following_count }}</div>
+                    <div class="text-sm font-medium uppercase tracking-wider transition-colors text-gray-500 group-hover:text-blue-600 dark:group-hover:text-blue-400" id="tab-label-following">Following</div>
+                    <div class="absolute bottom-0 left-0 w-full h-1 bg-transparent rounded-t-lg transition-all duration-300" id="tab-indicator-following"></div>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabs Content Container -->
+    <div class="w-full relative min-h-[300px]">
+        
+        <!-- Posts Tab -->
+        <div id="tab-posts" class="tab-content transition-opacity duration-300 opacity-100 min-h-full">
+            <h2 class="text-2xl font-bold mb-6 text-gray-900 dark:text-white flex items-center"><i class="fas fa-layer-group text-blue-500 mr-3"></i>Recent Posts</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {% for news in news_items %}
-                <article class="bg-white rounded-lg shadow-md overflow-hidden transform hover:-translate-y-1 transition-all duration-200">
-                    {% if news.images.first %}
-                    <div class="relative h-48">
-                        <img src="{{ news.images.first.image.url }}" alt="{{ news.title }}" 
-                             class="absolute inset-0 w-full h-full object-cover">
-                    </div>
-                    {% endif %}
-                    <div class="p-6">
-                        <h3 class="text-xl font-bold mb-2 hover:text-blue-600 transition-colors duration-200">
-                            <a href="{% url 'news:news_detail' news.pk %}">{{ news.title }}</a>
-                        </h3>
-                        <p class="text-gray-600 mb-4">{{ news.content|truncatewords:50 }}</p>
-                        <div class="flex items-center justify-between">
-                            <div class="flex space-x-4 text-gray-500">
-                                <span class="flex items-center">
-                                    <i class="far fa-heart mr-1"></i>
-                                    {{ news.likes.count }}
-                                </span>
-                                <span class="flex items-center">
-                                    <i class="far fa-comment mr-1"></i>
-                                    {{ news.comments.count }}
-                                </span>
-                                <span class="flex items-center">
-                                    <i class="far fa-share-square mr-1"></i>
-                                    {{ news.shares.count }}
-                                </span>
-                            </div>
-                            <span class="text-gray-500 text-sm">{{ news.created_at|date:"F j, Y" }}</span>
-                        </div>
-                    </div>
-                </article>
+                    {% include 'news/includes/news_card.html' with news=news %}
                 {% empty %}
-                <div class="text-center py-12">
-                    <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
-                    </svg>
-                    <h3 class="mt-2 text-sm font-medium text-gray-900">No posts yet</h3>
-                    <p class="mt-1 text-sm text-gray-500">{{ profile_user.username }} hasn't posted any news yet.</p>
+                <div class="col-span-full text-center py-12 bg-white dark:bg-dark-card rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800">
+                    <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-50 dark:bg-gray-800 mb-4">
+                        <i class="fas fa-newspaper text-2xl text-gray-400"></i>
+                    </div>
+                    <h3 class="mt-2 text-sm font-medium text-gray-900 dark:text-white">No posts yet</h3>
+                    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ profile_user.username }} hasn't posted any news.</p>
                 </div>
                 {% endfor %}
             </div>
-
-            <!-- Pagination -->
+            
+            <!-- Pagination inside Posts Tab -->
             {% if news_items.has_other_pages %}
             <div class="mt-8 flex justify-center">
-                <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
+                <nav class="relative z-0 inline-flex rounded-lg shadow-sm -space-x-px">
                     {% if news_items.has_previous %}
                     <a href="?page={{ news_items.previous_page_number }}" 
-                       class="relative inline-flex items-center px-3 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 transition-colors duration-200">
+                       class="relative inline-flex items-center px-4 py-2 rounded-l-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-dark-card text-sm font-medium text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors duration-200">
                         Previous
                     </a>
                     {% endif %}
 
                     {% for num in news_items.paginator.page_range %}
                     {% if news_items.number == num %}
-                    <span class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-blue-50 text-sm font-medium text-blue-600">
+                    <span class="relative inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-700 bg-blue-50 dark:bg-blue-900/20 text-sm font-medium text-blue-600 dark:text-blue-400">
                         {{ num }}
                     </span>
                     {% else %}
                     <a href="?page={{ num }}" 
-                       class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 transition-colors duration-200">
+                       class="relative inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-dark-card text-sm font-medium text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors duration-200">
                         {{ num }}
                     </a>
                     {% endif %}
@@ -126,7 +117,7 @@
 
                     {% if news_items.has_next %}
                     <a href="?page={{ news_items.next_page_number }}" 
-                       class="relative inline-flex items-center px-3 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 transition-colors duration-200">
+                       class="relative inline-flex items-center px-4 py-2 rounded-r-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-dark-card text-sm font-medium text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors duration-200">
                         Next
                     </a>
                     {% endif %}
@@ -134,18 +125,107 @@
             </div>
             {% endif %}
         </div>
+
+        <!-- Followers Tab -->
+        <div id="tab-followers" class="tab-content absolute top-0 left-0 w-full hidden transition-opacity duration-300 opacity-0 min-h-full">
+            <h2 class="text-2xl font-bold mb-6 text-gray-900 dark:text-white flex items-center"><i class="fas fa-users text-indigo-500 mr-3"></i>Followers</h2>
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-6">
+                {% for profile in followers_list %}
+                    {% include 'news/includes/user_card.html' with profile=profile.user.profile %}
+                {% empty %}
+                <div class="col-span-full text-center py-12 bg-white dark:bg-dark-card rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800">
+                    <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-50 dark:bg-gray-800 mb-4">
+                        <i class="fas fa-user-friends text-2xl text-gray-400"></i>
+                    </div>
+                    <h3 class="mt-2 text-sm font-medium text-gray-900 dark:text-white">No followers yet</h3>
+                    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ profile_user.username }} doesn't have any followers.</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Following Tab -->
+        <div id="tab-following" class="tab-content absolute top-0 left-0 w-full hidden transition-opacity duration-300 opacity-0 min-h-full">
+            <h2 class="text-2xl font-bold mb-6 text-gray-900 dark:text-white flex items-center"><i class="fas fa-user-check text-purple-500 mr-3"></i>Following</h2>
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-6">
+                {% for profile in following_list %}
+                    {% include 'news/includes/user_card.html' with profile=profile.user.profile %}
+                {% empty %}
+                <div class="col-span-full text-center py-12 bg-white dark:bg-dark-card rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800">
+                    <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-50 dark:bg-gray-800 mb-4">
+                        <i class="fas fa-user-check text-2xl text-gray-400"></i>
+                    </div>
+                    <h3 class="mt-2 text-sm font-medium text-gray-900 dark:text-white">Not following anyone</h3>
+                    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ profile_user.username }} isn't following anybody.</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        
     </div>
 </div>
 {% endblock %}
 
 {% block extra_js %}
 <script>
+// Tab Switching Logic
+function switchTab(tabId) {
+    const tabs = ['posts', 'followers', 'following'];
+    
+    tabs.forEach(t => {
+        const contentEl = document.getElementById(`tab-${t}`);
+        const indicatorEl = document.getElementById(`tab-indicator-${t}`);
+        const labelEl = document.getElementById(`tab-label-${t}`);
+        
+        if (t === tabId) {
+            contentEl.classList.remove('hidden');
+            // Allow display:block to apply before fading in
+            setTimeout(() => {
+                contentEl.classList.remove('opacity-0');
+                contentEl.classList.remove('absolute', 'top-0', 'left-0'); // restore document flow
+            }, 50);
+            
+            indicatorEl.classList.remove('bg-transparent');
+            indicatorEl.classList.add('bg-blue-600', 'dark:bg-blue-400');
+            
+            labelEl.classList.remove('text-gray-500');
+            labelEl.classList.add('text-blue-600', 'dark:text-blue-400');
+        } else {
+            contentEl.classList.add('opacity-0');
+            contentEl.classList.add('absolute', 'top-0', 'left-0'); // take out of document flow to prevent height stretching
+            
+            setTimeout(() => {
+                if(contentEl.classList.contains('opacity-0')) {
+                    contentEl.classList.add('hidden');
+                }
+            }, 300);
+            
+            indicatorEl.classList.remove('bg-blue-600', 'dark:bg-blue-400');
+            indicatorEl.classList.add('bg-transparent');
+            
+            labelEl.classList.remove('text-blue-600', 'dark:text-blue-400');
+            labelEl.classList.add('text-gray-500');
+        }
+    });
+
+    // Update URL Hash without scrolling
+    history.replaceState(undefined, undefined, `#${tabId}`);
+}
+
 document.addEventListener('DOMContentLoaded', function() {
-    const followButton = document.getElementById('followButton');
-    if (followButton) {
-        followButton.addEventListener('click', function() {
+    // Check hash for direct tab linking
+    const hash = window.location.hash.replace('#', '');
+    if (['posts', 'followers', 'following'].includes(hash)) {
+        switchTab(hash);
+    }
+
+    // Header follow button logic
+    const headerFollowBtn = document.getElementById('followButton');
+    if (headerFollowBtn) {
+        headerFollowBtn.addEventListener('click', function(e) {
+            e.preventDefault();
             const username = this.dataset.username;
-            fetch(`/news/user/${username}/follow/`, {
+            fetch(`/user/${username}/follow/`, {
                 method: 'POST',
                 headers: {
                     'X-CSRFToken': '{{ csrf_token }}',
@@ -155,17 +235,16 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(response => response.json())
             .then(data => {
                 if (data.status === 'success') {
-                    // Update button text and style
-                    this.textContent = data.is_following ? 'Following' : 'Follow';
                     if (data.is_following) {
-                        this.classList.remove('bg-blue-600', 'hover:bg-blue-700');
-                        this.classList.add('bg-gray-600', 'hover:bg-gray-700');
+                        this.innerHTML = '<i class="fas fa-check mr-2"></i>Following';
+                        this.classList.remove('bg-gradient-to-r', 'from-blue-600', 'to-indigo-600', 'hover:from-blue-700', 'hover:to-indigo-700');
+                        this.classList.add('bg-gray-800', 'hover:bg-gray-900', 'dark:bg-gray-700', 'dark:hover:bg-gray-600');
                     } else {
-                        this.classList.remove('bg-gray-600', 'hover:bg-gray-700');
-                        this.classList.add('bg-blue-600', 'hover:bg-blue-700');
+                        this.innerHTML = '<i class="fas fa-user-plus mr-2"></i>Follow';
+                        this.classList.remove('bg-gray-800', 'hover:bg-gray-900', 'dark:bg-gray-700', 'dark:hover:bg-gray-600');
+                        this.classList.add('bg-gradient-to-r', 'from-blue-600', 'to-indigo-600', 'hover:from-blue-700', 'hover:to-indigo-700');
                     }
                     
-                    // Update follower count
                     const followerCount = document.getElementById('followerCount');
                     if (followerCount) {
                         followerCount.textContent = data.follower_count;
@@ -174,6 +253,35 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         });
     }
+
+    // Individual follow buttons logic in the cards
+    document.querySelectorAll('.follow-button').forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            const username = this.dataset.username;
+            fetch(`/user/${username}/follow/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}',
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    if (data.is_following) {
+                        this.innerHTML = '<i class="fas fa-check mr-1"></i> Following';
+                        this.classList.remove('bg-blue-600', 'hover:bg-blue-700', 'text-white', 'shadow-sm');
+                        this.classList.add('bg-gray-100', 'hover:bg-gray-200', 'text-gray-800', 'dark:bg-gray-800', 'dark:hover:bg-gray-700', 'dark:text-white');
+                    } else {
+                        this.innerHTML = '<i class="fas fa-user-plus mr-1"></i> Follow';
+                        this.classList.remove('bg-gray-100', 'hover:bg-gray-200', 'text-gray-800', 'dark:bg-gray-800', 'dark:hover:bg-gray-700', 'dark:text-white');
+                        this.classList.add('bg-blue-600', 'hover:bg-blue-700', 'text-white', 'shadow-sm');
+                    }
+                }
+            });
+        });
+    });
 });
 </script>
-{% endblock %} 
+{% endblock %}

@@ -3,98 +3,132 @@
 {% block title %}{{ news.title }} - NewsHub{% endblock %}
 
 {% block content %}
-<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-fade-in">
     <!-- News Article -->
-    <article class="bg-white rounded-lg shadow-md overflow-hidden">
+    <article class="glass-panel rounded-3xl shadow-xl overflow-hidden border border-white/20 dark:border-gray-800">
         <!-- Author Info -->
-        <div class="p-6 border-b">
-            <div class="flex items-center justify-between">
+        <div class="p-6 border-b border-gray-100 dark:border-gray-800 bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div class="flex items-center">
                     <img src="{{ news.author.profile.avatar.url }}" alt="{{ news.author.username }}"
-                         class="h-12 w-12 rounded-full">
+                         class="h-14 w-14 rounded-full border-2 border-white dark:border-gray-700 shadow-md object-cover">
                     <div class="ml-4">
-                        <h2 class="text-lg font-medium text-gray-900">{{ news.author.username }}</h2>
-                        <p class="text-sm text-gray-500">{{ news.created_at|date:"F j, Y" }}</p>
+                        <div class="flex items-center gap-2">
+                            <h2 class="text-xl font-bold text-gray-900 dark:text-white">{{ news.author.username }}</h2>
+                            {% if news.geo_category == 'india' %}
+                            <span class="text-xs px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400 font-bold border border-orange-200 dark:border-orange-800">🇮🇳 India</span>
+                            {% else %}
+                            <span class="text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 font-bold border border-blue-200 dark:border-blue-800">🌍 Global</span>
+                            {% endif %}
+                        </div>
+                        <p class="text-sm text-gray-500 dark:text-gray-400 font-medium">{{ news.created_at|date:"F j, Y, g:i a" }}</p>
                     </div>
                 </div>
                 {% if user == news.author %}
-                <div class="flex space-x-2">
+                <div class="flex space-x-3">
                     <a href="{% url 'news:edit_news' news.pk %}"
-                       class="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                        <svg class="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                        </svg>
-                        Edit
+                       class="inline-flex items-center px-4 py-2 border border-gray-200 dark:border-gray-700 shadow-sm text-sm font-bold rounded-xl text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors">
+                        <i class="fas fa-edit mr-2 text-blue-500"></i> Edit
                     </a>
                     <a href="{% url 'news:delete_news' news.pk %}"
-                       class="inline-flex items-center px-3 py-2 border border-transparent shadow-sm text-sm leading-4 font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
-                        <svg class="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
-                        Delete
+                       class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-bold rounded-xl text-white bg-red-500 hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors">
+                        <i class="fas fa-trash-alt mr-2"></i> Delete
                     </a>
                 </div>
                 {% endif %}
             </div>
         </div>
 
-        <!-- News Content -->
-        <div class="p-6">
-            <h1 class="text-3xl font-bold text-gray-900 mb-4">{{ news.title }}</h1>
-            
-            <!-- Images -->
+        <!-- Media Context -->
+        {% if news.images.exists or news.video %}
+        <div class="bg-gray-900 dark:bg-black relative">
             {% if news.images.exists %}
-            <div class="mb-6 grid grid-cols-1 gap-4">
+            <div class="grid grid-cols-1 gap-1">
                 {% for image in news.images.all %}
-                <div class="relative" style="padding-top: 177.78%">  <!-- 16:9 aspect ratio (9/16 * 100) -->
+                <div class="relative w-full aspect-video">
                     <img src="{{ image.image.url }}" alt="News image" 
-                         class="absolute inset-0 w-full h-full object-cover rounded-lg">
+                         class="absolute inset-0 w-full h-full object-contain">
                 </div>
-                {% empty %}
-                <p class="text-gray-500">No images available for this news article.</p>
                 {% endfor %}
             </div>
             {% endif %}
             
-            <!-- Video -->
             {% if news.video %}
-            <div class="mb-6">
-                <div class="relative" style="padding-top: 177.78%">  <!-- 16:9 aspect ratio (9/16 * 100) -->
-                    <video controls class="absolute inset-0 w-full h-full object-cover rounded-lg">
-                        <source src="{{ news.video.url }}" type="video/mp4">
-                        Your browser does not support the video tag.
-                    </video>
+            <div class="relative w-full aspect-video">
+                <video controls class="absolute inset-0 w-full h-full object-contain">
+                    <source src="{{ news.video.url }}" type="video/mp4">
+                    Your browser does not support the video tag.
+                </video>
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        <!-- News Content -->
+        <div class="p-8 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md">
+            <!-- Format Badge -->
+            <div class="mb-4 inline-flex items-center px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider
+                        {% if news.news_type == 'short' %}bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400 border border-amber-200 dark:border-amber-800
+                        {% else %}bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800{% endif %}">
+                {% if news.news_type == 'short' %}<i class="fas fa-bolt mr-1.5"></i> Short Format{% else %}<i class="fas fa-book-open mr-1.5"></i> Long Read{% endif %}
+            </div>
+
+            <h1 class="text-3xl md:text-4xl font-extrabold text-gray-900 dark:text-white mb-6 leading-tight">{{ news.title }}</h1>
+            
+            <div class="prose prose-lg dark:prose-invert max-w-none mb-8 text-gray-700 dark:text-gray-300 leading-relaxed">
+                {{ news.content|linebreaks }}
+            </div>
+
+            <!-- Discovery: Tags & Mentions -->
+            {% if news.hashtags.exists or news.tagged_users.exists %}
+            <div class="mt-8 pt-6 border-t border-gray-100 dark:border-gray-800">
+                <div class="flex flex-wrap gap-2">
+                    {% for tag in news.hashtags.all %}
+                    <a href="{% url 'news:hashtag' tag.name %}" class="inline-flex items-center px-3 py-1.5 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 dark:bg-blue-900/20 dark:text-blue-400 dark:hover:bg-blue-900/40 text-sm font-medium transition-colors border border-blue-100 dark:border-blue-800/30">
+                        <i class="fas fa-hashtag text-xs mr-1 opacity-70"></i>{{ tag.name }}
+                    </a>
+                    {% endfor %}
+                    
+                    {% for tagged_user in news.tagged_users.all %}
+                    <a href="{% url 'accounts:user_profile' tagged_user.username %}" class="inline-flex items-center px-3 py-1.5 rounded-lg bg-purple-50 text-purple-600 hover:bg-purple-100 dark:bg-purple-900/20 dark:text-purple-400 dark:hover:bg-purple-900/40 text-sm font-medium transition-colors border border-purple-100 dark:border-purple-800/30">
+                        <i class="fas fa-at text-xs mr-1 opacity-70"></i>{{ tagged_user.username }}
+                    </a>
+                    {% endfor %}
                 </div>
             </div>
             {% endif %}
             
-            <!-- Content -->
-            <div class="prose max-w-none">
-                {{ news.content|linebreaks }}
-            </div>
-            
             <!-- Social Interactions -->
-            <div class="mt-6 flex items-center space-x-6">
-                <button id="likeButton" class="flex items-center space-x-2 text-gray-500 hover:text-blue-600"
+            <div class="mt-8 pt-6 border-t border-gray-100 dark:border-gray-800 flex items-center gap-6">
+                <!-- Like Button -->
+                <button id="likeButton" class="group flex items-center gap-2 px-4 py-2 rounded-xl transition-all duration-200 outline-none
+                        {% if request.user in news.likes.all %}bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400 font-bold border border-red-100 dark:border-red-900/50
+                        {% else %}bg-gray-50 text-gray-600 hover:bg-red-50 hover:text-red-500 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-red-900/20 dark:hover:text-red-400 font-medium border border-gray-100 dark:border-gray-700{% endif %}"
                         data-news-id="{{ news.pk }}" data-liked="{% if request.user in news.likes.all %}true{% else %}false{% endif %}">
-                    <i class="fas fa-heart {% if request.user in news.likes.all %}text-red-500{% endif %}"></i>
-                    <span id="likesCount">{{ news.likes.count }}</span>
+                    <i class="fas fa-heart text-lg transition-transform group-hover:scale-110 {% if request.user in news.likes.all %}text-red-500{% endif %}"></i>
+                    <span id="likesCount" class="select-none">{{ news.likes.count }}</span>
                 </button>
-                <button class="flex items-center space-x-2 text-gray-500 hover:text-blue-600" id="commentButton">
-                    <i class="fas fa-comment"></i>
-                    <span>{{ news.comments.count }}</span>
+                
+                <!-- Comment Button -->
+                <button class="group flex items-center gap-2 px-4 py-2 rounded-xl transition-all duration-200 outline-none bg-gray-50 text-gray-600 hover:bg-blue-50 hover:text-blue-600 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-blue-900/20 dark:hover:text-blue-400 font-medium border border-gray-100 dark:border-gray-700" id="commentButton">
+                    <i class="fas fa-comment text-lg transition-transform group-hover:scale-110"></i>
+                    <span class="select-none">{{ news.comments.count }}</span>
                 </button>
-                <button id="shareButton" class="flex items-center space-x-2 text-gray-500 hover:text-blue-600"
+                
+                <!-- Share Button -->
+                <button id="shareButton" class="group flex items-center gap-2 px-4 py-2 rounded-xl transition-all duration-200 outline-none bg-gray-50 text-gray-600 hover:bg-green-50 hover:text-green-600 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-green-900/20 dark:hover:text-green-400 font-medium border border-gray-100 dark:border-gray-700"
                         data-news-id="{{ news.pk }}">
-                    <i class="fas fa-share"></i>
-                    <span id="sharesCount">{{ news.shares.count }}</span>
+                    <i class="fas fa-share text-lg transition-transform group-hover:scale-110 group-hover:-rotate-12"></i>
+                    <span id="sharesCount" class="select-none">{{ news.shares.count }}</span>
                 </button>
             </div>
         </div>
     </article>
 
     <!-- Comments Section -->
-    {% include "news/includes/comments.html" %}
+    <div class="mt-10">
+        {% include "news/includes/comments.html" %}
+    </div>
 </div>
 {% endblock %}
 

@@ -16,7 +16,7 @@ class NewsForm(forms.ModelForm):
         widget=forms.RadioSelect(attrs={'class': 'sr-only'})
     )
     
-    images = forms.FileField(
+    images = forms.Field(
         required=False,
         widget=MultipleFileInput(attrs={
             'accept': 'image/*',
@@ -56,7 +56,7 @@ class NewsForm(forms.ModelForm):
 
     class Meta:
         model = News
-        fields = ['title', 'content', 'news_type', 'video', 'media_type', 'images', 'hashtags', 'tagged_users']
+        fields = ['title', 'content', 'news_type', 'video', 'hashtags', 'tagged_users']
         widgets = {
             'title': forms.TextInput(attrs={
                 'class': 'shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md',
@@ -110,6 +110,11 @@ class NewsForm(forms.ModelForm):
                     raise forms.ValidationError(f"User '{user}' does not exist")
 
         return cleaned_data
+    
+    def clean_images(self):
+        # Images are handled manually in the view via request.FILES.getlist('images')
+        # Return whatever was submitted without standard FileField validation
+        return self.files.getlist('images') if self.files else []
     
     def clean_video(self):
         video = self.cleaned_data.get('video')

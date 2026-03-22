@@ -1,0 +1,33 @@
+<div class="bg-white dark:bg-dark-card rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 p-6 flex flex-col items-center text-center transform hover:-translate-y-1 transition-all duration-300 hover:shadow-md">
+    <a href="{% url 'news:user_profile' profile.user.username %}" class="relative inline-block mb-4">
+        <img src="{{ profile.avatar.url }}" alt="{{ profile.user.username }}" class="h-20 w-20 rounded-full object-cover border-2 border-gray-100 dark:border-gray-700 shadow-sm">
+    </a>
+    <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-1"><a href="{% url 'news:user_profile' profile.user.username %}" class="hover:text-blue-600 transition-colors">{{ profile.user.username }}</a></h3>
+    {% if profile.bio %}
+    <p class="text-sm text-gray-500 dark:text-gray-400 mb-4 line-clamp-2 max-w-[200px]">{{ profile.bio }}</p>
+    {% else %}
+    <p class="text-sm text-gray-400 dark:text-gray-500 italic mb-4">No bio provided</p>
+    {% endif %}
+    
+    <div class="mt-auto pt-4 border-t border-gray-100 dark:border-gray-800 w-full flex justify-between text-sm">
+        <div class="text-center w-1/2">
+            <span class="block font-bold text-gray-900 dark:text-white">{{ profile.followers.count }}</span>
+            <span class="text-gray-500 text-xs uppercase tracking-wider">Followers</span>
+        </div>
+        <div class="text-center w-1/2 border-l border-gray-100 dark:border-gray-800">
+            <span class="block font-bold text-gray-900 dark:text-white">{{ profile.following.count }}</span>
+            <span class="text-gray-500 text-xs uppercase tracking-wider">Following</span>
+        </div>
+    </div>
+
+    {% if user.is_authenticated and user != profile.user %}
+    <button class="follow-button mt-4 w-full py-2 rounded-lg font-bold text-sm transition-all duration-200 {% if user.profile in profile.followers.all %}bg-gray-100 hover:bg-gray-200 text-gray-800 dark:bg-gray-800 dark:hover:bg-gray-700 dark:text-white{% else %}bg-blue-600 hover:bg-blue-700 text-white shadow-sm{% endif %}"
+            data-username="{{ profile.user.username }}">
+        {% if user.profile in profile.followers.all %}
+            <i class="fas fa-check mr-1"></i> Following
+        {% else %}
+            <i class="fas fa-user-plus mr-1"></i> Follow
+        {% endif %}
+    </button>
+    {% endif %}
+</div>

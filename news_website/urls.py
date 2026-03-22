@@ -25,6 +25,10 @@ urlpatterns = [
     path('', include('news.urls')),
     path('accounts/', include('accounts.urls')),
     
+    # API Endpoints
+    path('api/accounts/', include('accounts.api_urls')),
+    path('api/news/', include('news.api_urls')),
+    
     # Password reset URLs
     path('password-reset/',
          auth_views.PasswordResetView.as_view(

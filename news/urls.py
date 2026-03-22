@@ -43,4 +43,5 @@ urlpatterns = [
     path('api/trending-news/', views.api_trending_news, name='api_trending_news'),
     path('api/for-you/', views.api_for_you_feed, name='api_for_you_feed'),
     path('api/track-interaction/', views.api_track_interaction, name='api_track_interaction'),
+    path('api/geo-trending/', views.api_geo_trending, name='api_geo_trending'),
 ] 

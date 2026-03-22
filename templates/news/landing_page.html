@@ -2,110 +2,350 @@
 
 {% block title %}NewsHub - Latest News{% endblock %}
 
+{% block extra_css %}
+<style>
+    /* ===== Geo-Trending Widget Styles ===== */
+    .geo-trending-container {
+        background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+        border-radius: 16px;
+        overflow: hidden;
+    }
+    .dark .geo-trending-container {
+        background: linear-gradient(135deg, #1e293b, #0f172a);
+    }
+
+    /* Toggle Tabs */
+    .geo-toggle-group {
+        display: flex;
+        background: rgba(0,0,0,0.06);
+        border-radius: 12px;
+        padding: 3px;
+    }
+    .dark .geo-toggle-group {
+        background: rgba(255,255,255,0.06);
+    }
+    .geo-toggle-btn {
+        flex: 1;
+        padding: 8px 12px;
+        border-radius: 10px;
+        font-size: 13px;
+        font-weight: 600;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.3s cubic-bezier(0.4,0,0.2,1);
+        color: #64748b;
+        user-select: none;
+    }
+    .geo-toggle-btn.active-india {
+        background: linear-gradient(135deg, #f97316, #ef4444);
+        color: white;
+        box-shadow: 0 4px 12px rgba(249,115,22,0.35);
+    }
+    .geo-toggle-btn.active-global {
+        background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+        color: white;
+        box-shadow: 0 4px 12px rgba(59,130,246,0.35);
+    }
+
+    /* Hashtag Pills */
+    .hashtag-pill {
+        display: inline-flex;
+        align-items: center;
+        padding: 6px 14px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.25s ease;
+        text-decoration: none;
+        white-space: nowrap;
+    }
+    .hashtag-pill-india {
+        background: linear-gradient(135deg, rgba(249,115,22,0.12), rgba(239,68,68,0.12));
+        color: #ea580c;
+        border: 1px solid rgba(249,115,22,0.2);
+    }
+    .hashtag-pill-india:hover {
+        background: linear-gradient(135deg, rgba(249,115,22,0.22), rgba(239,68,68,0.22));
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(249,115,22,0.2);
+    }
+    .hashtag-pill-global {
+        background: linear-gradient(135deg, rgba(59,130,246,0.12), rgba(139,92,246,0.12));
+        color: #3b82f6;
+        border: 1px solid rgba(59,130,246,0.2);
+    }
+    .hashtag-pill-global:hover {
+        background: linear-gradient(135deg, rgba(59,130,246,0.22), rgba(139,92,246,0.22));
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(59,130,246,0.2);
+    }
+    .dark .hashtag-pill-india {
+        background: linear-gradient(135deg, rgba(249,115,22,0.15), rgba(239,68,68,0.15));
+        border-color: rgba(249,115,22,0.3);
+    }
+    .dark .hashtag-pill-global {
+        background: linear-gradient(135deg, rgba(59,130,246,0.15), rgba(139,92,246,0.15));
+        border-color: rgba(59,130,246,0.3);
+    }
+
+    .hashtag-score {
+        font-size: 10px;
+        padding: 1px 6px;
+        border-radius: 8px;
+        margin-left: 6px;
+        font-weight: 700;
+    }
+    .hashtag-score-india {
+        background: rgba(249,115,22,0.2);
+        color: #c2410c;
+    }
+    .hashtag-score-global {
+        background: rgba(59,130,246,0.2);
+        color: #1d4ed8;
+    }
+    .dark .hashtag-score-india { color: #fb923c; }
+    .dark .hashtag-score-global { color: #93c5fd; }
+
+    /* Trending Post Card */
+    .trending-post-card {
+        background: white;
+        border-radius: 12px;
+        padding: 12px;
+        transition: all 0.2s ease;
+        border: 1px solid rgba(0,0,0,0.05);
+    }
+    .trending-post-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+    }
+    .dark .trending-post-card {
+        background: #1e293b;
+        border-color: rgba(255,255,255,0.05);
+    }
+    .dark .trending-post-card:hover {
+        box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+    }
+
+    /* Velocity Badge */
+    .velocity-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 3px;
+        font-size: 10px;
+        font-weight: 700;
+        padding: 2px 7px;
+        border-radius: 6px;
+    }
+    .velocity-badge-india {
+        background: linear-gradient(135deg, #f97316, #ef4444);
+        color: white;
+    }
+    .velocity-badge-global {
+        background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+        color: white;
+    }
+
+    /* Skeleton Loading */
+    @keyframes shimmer {
+        0% { background-position: -200px 0; }
+        100% { background-position: calc(200px + 100%) 0; }
+    }
+    .skeleton {
+        background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+        background-size: 200px 100%;
+        animation: shimmer 1.5s infinite;
+        border-radius: 8px;
+    }
+    .dark .skeleton {
+        background: linear-gradient(90deg, #1e293b 25%, #334155 50%, #1e293b 75%);
+        background-size: 200px 100%;
+    }
+
+    /* Content fade animation */
+    .geo-content-area {
+        transition: opacity 0.3s ease, transform 0.3s ease;
+    }
+    .geo-content-area.fading {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+
+    /* Live indicator */
+    .live-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: #22c55e;
+        animation: pulse-dot 2s infinite;
+    }
+    @keyframes pulse-dot {
+        0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(34,197,94,0.4); }
+        50% { opacity: 0.7; box-shadow: 0 0 0 4px rgba(34,197,94,0); }
+    }
+
+    /* Section divider */
+    .section-divider {
+        height: 1px;
+        background: linear-gradient(to right, transparent, rgba(0,0,0,0.08), transparent);
+    }
+    .dark .section-divider { background: linear-gradient(to right, transparent, rgba(255,255,255,0.06), transparent); }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="grid grid-cols-12 gap-4 mx-0">
-    <!-- Left Sidebar - Trending Hashtags -->
-    <div class="col-span-2 sticky top-20 h-screen overflow-y-auto px-2">
-        <div class="bg-white rounded-lg shadow p-4 mb-4">
-            <h3 class="text-lg font-semibold mb-3">Global Trending</h3>
-            <div class="space-y-2">
-                {% for tag in global_trending_tags|slice:":3" %}
-                <a href="{% url 'news:hashtag' tag.name %}" class="block text-blue-600 hover:text-blue-800">
-                    #{{ tag.name }}
-                    <span class="text-gray-500 text-sm">({{ tag.total_count }})</span>
-                </a>
-                {% endfor %}
+    <!-- Left Sidebar - Geo-Trending Widget -->
+    <div class="col-span-2 sticky top-20 h-screen overflow-y-auto px-2 pb-8">
+        <div class="geo-trending-container p-4">
+            <!-- Header -->
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                    <i class="fas fa-fire text-orange-500"></i>
+                    Trending
+                </h3>
+                <div class="flex items-center gap-1">
+                    <div class="live-dot"></div>
+                    <span class="text-[10px] font-medium text-green-600 dark:text-green-400">LIVE</span>
+                </div>
             </div>
-        </div>
-        
-        <div class="bg-white rounded-lg shadow p-4">
-            <h3 class="text-lg font-semibold mb-3">India Trending</h3>
-            <div class="space-y-2">
-                {% for tag in india_trending_tags|slice:":3" %}
-                <a href="{% url 'news:hashtag' tag.name %}" class="block text-blue-600 hover:text-blue-800">
-                    #{{ tag.name }}
-                    <span class="text-gray-500 text-sm">({{ tag.total_count }})</span>
-                </a>
-                {% endfor %}
+
+            <!-- Trending Content Area -->
+            <div class="geo-content-area" id="geoContentArea">
+                
+                <!-- Global Trending (Always visible) -->
+                <div id="globalTrendingSection" class="mb-5">
+                    <div class="flex items-center gap-2 mb-2">
+                        <span class="text-[12px] font-bold text-gray-700 dark:text-gray-300">🌍 Global</span>
+                    </div>
+                    <!-- Hashtag Pills -->
+                    <div class="mb-3">
+                        <div class="flex flex-col gap-2" id="globalHashtagPills">
+                            {% for tag in global_trending_tags|slice:":3" %}
+                            <a href="{% url 'news:hashtag' tag.name %}" class="hashtag-pill hashtag-pill-global text-left w-full justify-between">
+                                <span>#{{ tag.name|truncatechars:15 }}</span>
+                                <span class="hashtag-score hashtag-score-global ml-1">{{ tag.score }}</span>
+                            </a>
+                            {% empty %}
+                            <p class="text-xs text-gray-400 dark:text-gray-500 italic">No trending hashtags yet</p>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section-divider my-4"></div>
+
+                <!-- India Trending (Always visible) -->
+                <div id="indiaTrendingSection">
+                    <div class="flex items-center gap-2 mb-2">
+                        <span class="text-[12px] font-bold text-gray-700 dark:text-gray-300">🇮🇳 India</span>
+                    </div>
+                    <!-- Hashtag Pills -->
+                    <div class="mb-3">
+                        <div class="flex flex-col gap-2" id="indiaHashtagPills">
+                            {% for tag in india_trending_tags|slice:":3" %}
+                            <a href="{% url 'news:hashtag' tag.name %}" class="hashtag-pill hashtag-pill-india text-left w-full justify-between">
+                                <span>#{{ tag.name|truncatechars:15 }}</span>
+                                <span class="hashtag-score hashtag-score-india ml-1">{{ tag.score }}</span>
+                            </a>
+                            {% empty %}
+                            <p class="text-xs text-gray-400 dark:text-gray-500 italic">No trending hashtags yet</p>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Skeleton Loading (hidden) -->
+                <div id="trendingSkeleton" class="hidden">
+                    <div class="mb-5">
+                        <div class="skeleton h-4 w-16 mb-2"></div>
+                        <div class="flex flex-col gap-2">
+                            <div class="skeleton h-8 w-full rounded-full"></div>
+                            <div class="skeleton h-8 w-full rounded-full"></div>
+                            <div class="skeleton h-8 w-full rounded-full"></div>
+                        </div>
+                    </div>
+                    <div class="section-divider my-4"></div>
+                    <div>
+                        <div class="skeleton h-4 w-16 mb-2"></div>
+                        <div class="flex flex-col gap-2">
+                            <div class="skeleton h-8 w-full rounded-full"></div>
+                            <div class="skeleton h-8 w-full rounded-full"></div>
+                            <div class="skeleton h-8 w-full rounded-full"></div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 
     <!-- Main Content -->
     <div class="col-span-7 px-2">
-        <!-- Trending News -->
-        <section class="mb-12">
-            <h2 class="text-2xl font-bold text-gray-900 mb-6">Trending News</h2>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {% for news in trending_news %}
-                <article class="bg-white rounded-lg shadow-md overflow-hidden">
-                    <!-- Author Info - Moved to top -->
-                    <div class="p-3 border-b">
-                        <div class="flex items-center">
-                            <img src="{{ news.author.profile.avatar.url }}" alt="{{ news.author.username }}"
-                                 class="h-8 w-8 rounded-full">
-                            <div class="ml-2">
-                                <p class="text-sm font-medium text-gray-900">{{ news.author.username }}</p>
-                                <p class="text-xs text-gray-500">{{ news.created_at|date:"F j, Y" }}</p>
-                            </div>
-                        </div>
+        <style>
+            .hide-scroll::-webkit-scrollbar {
+                display: none;
+            }
+            .hide-scroll {
+                -ms-overflow-style: none;  /* IE and Edge */
+                scrollbar-width: none;  /* Firefox */
+                scroll-behavior: smooth;
+            }
+        </style>
+
+        <!-- Trending India -->
+        <section class="mb-10 relative">
+            <div class="flex justify-between items-end mb-4">
+                <h2 class="text-2xl font-bold text-gray-900 dark:text-white flex items-center">
+                    <span class="text-xl mr-2">🇮🇳</span> Trending India
+                </h2>
+                <div class="flex space-x-2">
+                    <button onclick="scrollCarousel('india-carousel', -1)" class="w-10 h-10 flex items-center justify-center rounded-full bg-white dark:bg-gray-800 shadow hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 transition-colors border border-gray-100 dark:border-gray-700 disabled:opacity-50">
+                        <i class="fas fa-chevron-left"></i>
+                    </button>
+                    <button onclick="scrollCarousel('india-carousel', 1)" class="w-10 h-10 flex items-center justify-center rounded-full bg-white dark:bg-gray-800 shadow hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 transition-colors border border-gray-100 dark:border-gray-700 disabled:opacity-50">
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <div id="india-carousel" class="flex overflow-x-auto snap-x snap-mandatory gap-6 pb-6 -mx-2 px-2 hide-scroll">
+                {% for post_data in india_trending_posts %}
+                    <div class="min-w-[320px] max-w-[320px] lg:min-w-[350px] lg:max-w-[350px] snap-start flex-shrink-0 h-full flex transform transition-transform duration-300 hover:-translate-y-1">
+                        {% include 'news/includes/news_card.html' with news=post_data.news %}
                     </div>
-                    
-                    <!-- Media -->
-                    {% if news.images.exists %}
-                    <div class="relative" style="padding-top: 177.78%">
-                        <img src="{{ news.images.first.image.url }}" alt="{{ news.title }}"
-                             class="absolute inset-0 w-full h-full object-cover">
-                    </div>
-                    {% elif news.video %}
-                    <div class="relative" style="padding-top: 177.78%">
-                        <video class="absolute inset-0 w-full h-full object-cover">
-                            <source src="{{ news.video.url }}" type="video/mp4">
-                            Your browser does not support the video tag.
-                        </video>
-                    </div>
-                    {% endif %}
-                    
-                    <!-- Content -->
-                    <div class="p-4">
-                        <h3 class="text-lg font-semibold text-gray-900 mb-2">
-                            <a href="{% url 'news:news_detail' news.pk %}" class="hover:text-blue-600">
-                                {{ news.title|truncatechars:60 }}
-                            </a>
-                        </h3>
-                        
-                        <p class="text-gray-600 text-sm mb-3">{{ news.content|truncatechars:120 }}</p>
-                        
-                        <!-- Hashtags -->
-                        {% if news.hashtags.exists %}
-                        <div class="mb-3">
-                            {% for tag in news.hashtags.all %}
-                            <a href="{% url 'news:hashtag' tag.name %}" class="inline-block text-blue-600 hover:text-blue-800 text-sm mr-2">
-                                #{{ tag.name }}
-                            </a>
-                            {% endfor %}
-                        </div>
-                        {% endif %}
-                        
-                        <!-- Interactions -->
-                        <div class="flex items-center text-sm text-gray-500 space-x-4">
-                            <div class="flex items-center">
-                                <i class="fas fa-heart mr-1 {% if request.user in news.likes.all %}text-red-500{% endif %}"></i>
-                                <span>{{ news.likes.count }}</span>
-                            </div>
-                            <div class="flex items-center">
-                                <i class="fas fa-comment mr-1"></i>
-                                <span>{{ news.comments.count }}</span>
-                            </div>
-                            <div class="flex items-center">
-                                <i class="fas fa-share mr-1"></i>
-                                <span>{{ news.shares.count }}</span>
-                            </div>
-                        </div>
-                    </div>
-                </article>
                 {% empty %}
-                <p class="text-gray-500">No trending news available.</p>
+                <div class="w-full flex items-center justify-center py-12 bg-gray-50 dark:bg-gray-800/50 rounded-2xl border border-dashed border-gray-200 dark:border-gray-700">
+                    <p class="text-gray-500 dark:text-gray-400 font-medium">No trending news from India available right now.</p>
+                </div>
+                {% endfor %}
+            </div>
+        </section>
+
+        <!-- Trending World -->
+        <section class="mb-12 relative">
+            <div class="flex justify-between items-end mb-4">
+                <h2 class="text-2xl font-bold text-gray-900 dark:text-white flex items-center">
+                    <span class="text-xl mr-2">🌍</span> Trending World News
+                </h2>
+                <div class="flex space-x-2">
+                    <button onclick="scrollCarousel('world-carousel', -1)" class="w-10 h-10 flex items-center justify-center rounded-full bg-white dark:bg-gray-800 shadow hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 transition-colors border border-gray-100 dark:border-gray-700 disabled:opacity-50">
+                        <i class="fas fa-chevron-left"></i>
+                    </button>
+                    <button onclick="scrollCarousel('world-carousel', 1)" class="w-10 h-10 flex items-center justify-center rounded-full bg-white dark:bg-gray-800 shadow hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 transition-colors border border-gray-100 dark:border-gray-700 disabled:opacity-50">
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <div id="world-carousel" class="flex overflow-x-auto snap-x snap-mandatory gap-6 pb-6 -mx-2 px-2 hide-scroll">
+                {% for post_data in global_trending_posts %}
+                    <div class="min-w-[320px] max-w-[320px] lg:min-w-[350px] lg:max-w-[350px] snap-start flex-shrink-0 h-full flex transform transition-transform duration-300 hover:-translate-y-1">
+                        {% include 'news/includes/news_card.html' with news=post_data.news %}
+                    </div>
+                {% empty %}
+                <div class="w-full flex items-center justify-center py-12 bg-gray-50 dark:bg-gray-800/50 rounded-2xl border border-dashed border-gray-200 dark:border-gray-700">
+                    <p class="text-gray-500 dark:text-gray-400 font-medium">No trending world news available right now.</p>
+                </div>
                 {% endfor %}
             </div>
         </section>
@@ -113,10 +353,10 @@
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
             <!-- World News -->
             <section>
-                <h2 class="text-2xl font-bold mb-4">World News</h2>
+                <h2 class="text-2xl font-bold mb-4 dark:text-white">World News</h2>
                 <div class="space-y-4" id="world-news-container">
                     {% for news in world_news %}
-                    <div class="bg-white rounded-lg shadow-lg hover:shadow-xl transition-shadow duration-300 overflow-hidden transform hover:-translate-y-1 transition-transform duration-300">
+                    <div class="bg-white dark:bg-dark-card rounded-lg shadow-lg hover:shadow-xl transition-shadow duration-300 overflow-hidden transform hover:-translate-y-1 transition-transform duration-300">
                         {% if news.image %}
                         <div class="relative" style="padding-top: 56.25%">  <!-- 16:9 aspect ratio -->
                             <img src="{{ news.image }}" alt="{{ news.title }}" 
@@ -124,10 +364,10 @@
                         </div>
                         {% endif %}
                         <div class="p-4">
-                            <h3 class="text-lg font-semibold mb-2 hover:text-blue-600 transition-colors duration-200">{{ news.title }}</h3>
-                            <p class="text-gray-600 mb-4">{{ news.text|truncatewords:50 }}</p>
+                            <h3 class="text-lg font-semibold mb-2 hover:text-blue-600 transition-colors duration-200 dark:text-white">{{ news.title }}</h3>
+                            <p class="text-gray-600 dark:text-gray-400 mb-4">{{ news.text|truncatewords:50 }}</p>
                             <div class="flex justify-between items-center">
-                                <span class="text-gray-500">{{ news.publish_date }}</span>
+                                <span class="text-gray-500 dark:text-gray-400">{{ news.publish_date }}</span>
                                 <div class="space-x-2">
                                     <button class="text-blue-600 hover:text-blue-800 transition-colors duration-200 read-more-btn">Read More</button>
                                     <a href="{{ news.url }}" target="_blank" class="inline-flex items-center text-blue-600 hover:text-blue-800 transition-colors duration-200">
@@ -139,12 +379,12 @@
                                 </div>
                             </div>
                             <div class="mt-4 hidden full-content">
-                                <p class="text-gray-600">{{ news.text }}</p>
+                                <p class="text-gray-600 dark:text-gray-400">{{ news.text }}</p>
                             </div>
                         </div>
                     </div>
                     {% empty %}
-                    <p class="text-gray-500">No world news available at the moment.</p>
+                    <p class="text-gray-500 dark:text-gray-400">No world news available at the moment.</p>
                     {% endfor %}
                 </div>
                 <button id="load-more-world" class="mt-4 w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transform hover:scale-105 transition-all duration-200">
@@ -154,10 +394,10 @@
 
             <!-- Indian News -->
             <section>
-                <h2 class="text-2xl font-bold mb-4">Indian News</h2>
+                <h2 class="text-2xl font-bold mb-4 dark:text-white">Indian News</h2>
                 <div class="space-y-4" id="indian-news-container">
                     {% for news in indian_news %}
-                    <div class="bg-white rounded-lg shadow-lg hover:shadow-xl transition-shadow duration-300 overflow-hidden transform hover:-translate-y-1 transition-transform duration-300">
+                    <div class="bg-white dark:bg-dark-card rounded-lg shadow-lg hover:shadow-xl transition-shadow duration-300 overflow-hidden transform hover:-translate-y-1 transition-transform duration-300">
                         {% if news.image %}
                         <div class="relative" style="padding-top: 56.25%">  <!-- 16:9 aspect ratio -->
                             <img src="{{ news.image }}" alt="{{ news.title }}" 
@@ -165,10 +405,10 @@
                         </div>
                         {% endif %}
                         <div class="p-4">
-                            <h3 class="text-lg font-semibold mb-2 hover:text-blue-600 transition-colors duration-200">{{ news.title }}</h3>
-                            <p class="text-gray-600 mb-4">{{ news.text|truncatewords:50 }}</p>
+                            <h3 class="text-lg font-semibold mb-2 hover:text-blue-600 transition-colors duration-200 dark:text-white">{{ news.title }}</h3>
+                            <p class="text-gray-600 dark:text-gray-400 mb-4">{{ news.text|truncatewords:50 }}</p>
                             <div class="flex justify-between items-center">
-                                <span class="text-gray-500">{{ news.publish_date }}</span>
+                                <span class="text-gray-500 dark:text-gray-400">{{ news.publish_date }}</span>
                                 <div class="space-x-2">
                                     <button class="text-blue-600 hover:text-blue-800 transition-colors duration-200 read-more-btn">Read More</button>
                                     <a href="{{ news.url }}" target="_blank" class="inline-flex items-center text-blue-600 hover:text-blue-800 transition-colors duration-200">
@@ -180,12 +420,12 @@
                                 </div>
                             </div>
                             <div class="mt-4 hidden full-content">
-                                <p class="text-gray-600">{{ news.text }}</p>
+                                <p class="text-gray-600 dark:text-gray-400">{{ news.text }}</p>
                             </div>
                         </div>
                     </div>
                     {% empty %}
-                    <p class="text-gray-500">No Indian news available at the moment.</p>
+                    <p class="text-gray-500 dark:text-gray-400">No Indian news available at the moment.</p>
                     {% endfor %}
                 </div>
                 <button id="load-more-indian" class="mt-4 w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transform hover:scale-105 transition-all duration-200">
@@ -197,18 +437,18 @@
 
     <!-- Right Sidebar - Market Updates -->
     <div class="col-span-3 px-2">
-        <div class="bg-white p-4 rounded-lg shadow sticky top-20">
+        <div class="bg-white dark:bg-dark-card p-4 rounded-lg shadow sticky top-20">
             <div class="flex justify-between items-center mb-4">
-                <h2 class="text-xl font-semibold">Market Updates</h2>
+                <h2 class="text-xl font-semibold dark:text-white">Market Updates</h2>
                 <a href="{% url 'news:market_list' %}" class="text-blue-600 hover:text-blue-800 text-sm">View All</a>
             </div>
             
             <!-- Market Type Selector -->
             <div class="flex space-x-2 mb-4">
-                <button class="market-tab active px-4 py-2 text-sm font-medium rounded-md bg-blue-50 text-blue-600" data-type="stocks">
+                <button class="market-tab active px-4 py-2 text-sm font-medium rounded-md bg-blue-50 text-blue-600 dark:bg-blue-900/20" data-type="stocks">
                     Stocks
                 </button>
-                <button class="market-tab px-4 py-2 text-sm font-medium rounded-md text-gray-500 hover:bg-gray-50" data-type="crypto">
+                <button class="market-tab px-4 py-2 text-sm font-medium rounded-md text-gray-500 hover:bg-gray-50 dark:hover:bg-dark-secondary dark:text-gray-400" data-type="crypto">
                     Crypto
                 </button>
             </div>
@@ -217,13 +457,13 @@
             <div id="stocks-container" class="mb-4">
                 <div class="space-y-2">
                     {% for stock in market_data.stocks|slice:":5" %}
-                    <div class="flex justify-between items-center p-2 hover:bg-gray-50 rounded-md">
+                    <div class="flex justify-between items-center p-2 hover:bg-gray-50 dark:hover:bg-dark-secondary rounded-md">
                         <div class="flex items-center">
-                            <span class="text-gray-900 font-medium">{{ stock.symbol }}</span>
-                            <span class="ml-2 text-sm text-gray-500">{{ stock.name }}</span>
+                            <span class="text-gray-900 dark:text-white font-medium">{{ stock.symbol }}</span>
+                            <span class="ml-2 text-sm text-gray-500 dark:text-gray-400">{{ stock.name }}</span>
                         </div>
                         <div class="flex items-center">
-                            <span class="text-sm font-medium">${{ stock.price|floatformat:2 }}</span>
+                            <span class="text-sm font-medium dark:text-white">${{ stock.price|floatformat:2 }}</span>
                             <span class="ml-2 {% if stock.change_percent >= 0 %}text-green-600{% else %}text-red-600{% endif %}">
                                 {% if stock.change_percent >= 0 %}▲{% else %}▼{% endif %}
                                 {{ stock.change_percent|floatformat:2 }}%
@@ -231,7 +471,7 @@
                         </div>
                     </div>
                     {% empty %}
-                    <div class="text-center py-4 text-gray-500">
+                    <div class="text-center py-4 text-gray-500 dark:text-gray-400">
                         <p>No stock data available</p>
                     </div>
                     {% endfor %}
@@ -242,13 +482,13 @@
             <div id="crypto-container" class="mb-4 hidden">
                 <div class="space-y-2">
                     {% for crypto in market_data.crypto|slice:":5" %}
-                    <div class="flex justify-between items-center p-2 hover:bg-gray-50 rounded-md">
+                    <div class="flex justify-between items-center p-2 hover:bg-gray-50 dark:hover:bg-dark-secondary rounded-md">
                         <div class="flex items-center">
-                            <span class="text-gray-900 font-medium">{{ crypto.symbol }}</span>
-                            <span class="ml-2 text-sm text-gray-500">{{ crypto.name }}</span>
+                            <span class="text-gray-900 dark:text-white font-medium">{{ crypto.symbol }}</span>
+                            <span class="ml-2 text-sm text-gray-500 dark:text-gray-400">{{ crypto.name }}</span>
                         </div>
                         <div class="flex items-center">
-                            <span class="text-sm font-medium">${{ crypto.price|floatformat:2 }}</span>
+                            <span class="text-sm font-medium dark:text-white">${{ crypto.price|floatformat:2 }}</span>
                             <span class="ml-2 {% if crypto.change_percent >= 0 %}text-green-600{% else %}text-red-600{% endif %}">
                                 {% if crypto.change_percent >= 0 %}▲{% else %}▼{% endif %}
                                 {{ crypto.change_percent|floatformat:2 }}%
@@ -256,7 +496,7 @@
                         </div>
                     </div>
                     {% empty %}
-                    <div class="text-center py-4 text-gray-500">
+                    <div class="text-center py-4 text-gray-500 dark:text-gray-400">
                         <p>No crypto data available</p>
                     </div>
                     {% endfor %}
@@ -269,6 +509,42 @@
 
 {% block extra_js %}
 <script>
+// ===== Geo-Trending Widget Logic =====
+// Removed toggle logic, data refreshes both sections periodically
+
+// ===== Auto-Refresh via AJAX =====
+function refreshTrendingData(category) {
+    fetch(`/api/geo-trending/?category=${category}`)
+        .then(r => r.json())
+        .then(data => {
+            if (!data.success) return;
+
+            const pillClass = category === 'india' ? 'hashtag-pill-india' : 'hashtag-pill-global';
+            const scoreClass = category === 'india' ? 'hashtag-score-india' : 'hashtag-score-global';
+            const hashContainer = document.getElementById(`${category === 'india' ? 'india' : 'global'}HashtagPills`);
+
+            // Update top 3 hashtags
+            if (data.hashtags.length > 0) {
+                const top3 = data.hashtags.slice(0, 3);
+                hashContainer.innerHTML = top3.map(tag => `
+                    <a href="/hashtag/${tag.name}/" class="hashtag-pill ${pillClass} text-left w-full justify-between">
+                        <span>#${tag.name.length > 15 ? tag.name.substring(0, 15) + '...' : tag.name}</span>
+                        <span class="hashtag-score ${scoreClass} ml-1">${tag.score}</span>
+                    </a>
+                `).join('');
+            }
+        })
+        .catch(err => console.warn('Trending refresh failed:', err));
+}
+
+// Auto-refresh every 60 seconds
+setInterval(() => {
+    refreshTrendingData('india');
+    refreshTrendingData('global');
+}, 60000);
+
+
+// ===== Existing Landing Page Logic =====
 let worldNewsPage = 1;
 let indianNewsPage = 1;
 
@@ -296,7 +572,7 @@ document.getElementById('load-more-world').addEventListener('click', function() 
             const container = document.getElementById('world-news-container');
             data.news.forEach(news => {
                 container.insertAdjacentHTML('beforeend', `
-                    <div class="bg-white rounded-lg shadow-lg hover:shadow-xl transition-shadow duration-300 overflow-hidden transform hover:-translate-y-1 transition-transform duration-300">
+                    <div class="bg-white dark:bg-dark-card rounded-lg shadow-lg hover:shadow-xl transition-shadow duration-300 overflow-hidden transform hover:-translate-y-1 transition-transform duration-300">
                         ${news.image ? `
                         <div class="relative" style="padding-top: 56.25%">
                             <img src="${news.image}" alt="${news.title}" 
@@ -304,10 +580,10 @@ document.getElementById('load-more-world').addEventListener('click', function() 
                         </div>
                         ` : ''}
                         <div class="p-4">
-                            <h3 class="text-lg font-semibold mb-2 hover:text-blue-600 transition-colors duration-200">${news.title}</h3>
-                            <p class="text-gray-600 mb-4">${news.text.split(' ').slice(0, 50).join(' ')}...</p>
+                            <h3 class="text-lg font-semibold mb-2 hover:text-blue-600 transition-colors duration-200 dark:text-white">${news.title}</h3>
+                            <p class="text-gray-600 dark:text-gray-400 mb-4">${news.text.split(' ').slice(0, 50).join(' ')}...</p>
                             <div class="flex justify-between items-center">
-                                <span class="text-gray-500">${news.publish_date}</span>
+                                <span class="text-gray-500 dark:text-gray-400">${news.publish_date}</span>
                                 <div class="space-x-2">
                                     <button class="text-blue-600 hover:text-blue-800 transition-colors duration-200 read-more-btn">Read More</button>
                                     <a href="${news.url}" target="_blank" class="inline-flex items-center text-blue-600 hover:text-blue-800 transition-colors duration-200">
@@ -319,7 +595,7 @@ document.getElementById('load-more-world').addEventListener('click', function() 
                                 </div>
                             </div>
                             <div class="mt-4 hidden full-content">
-                                <p class="text-gray-600">${news.text}</p>
+                                <p class="text-gray-600 dark:text-gray-400">${news.text}</p>
                             </div>
                         </div>
                     </div>
@@ -352,7 +628,7 @@ document.getElementById('load-more-indian').addEventListener('click', function()
             const container = document.getElementById('indian-news-container');
             data.news.forEach(news => {
                 container.insertAdjacentHTML('beforeend', `
-                    <div class="bg-white rounded-lg shadow-lg hover:shadow-xl transition-shadow duration-300 overflow-hidden transform hover:-translate-y-1 transition-transform duration-300">
+                    <div class="bg-white dark:bg-dark-card rounded-lg shadow-lg hover:shadow-xl transition-shadow duration-300 overflow-hidden transform hover:-translate-y-1 transition-transform duration-300">
                         ${news.image ? `
                         <div class="relative" style="padding-top: 56.25%">
                             <img src="${news.image}" alt="${news.title}" 
@@ -360,10 +636,10 @@ document.getElementById('load-more-indian').addEventListener('click', function()
                         </div>
                         ` : ''}
                         <div class="p-4">
-                            <h3 class="text-lg font-semibold mb-2 hover:text-blue-600 transition-colors duration-200">${news.title}</h3>
-                            <p class="text-gray-600 mb-4">${news.text.split(' ').slice(0, 50).join(' ')}...</p>
+                            <h3 class="text-lg font-semibold mb-2 hover:text-blue-600 transition-colors duration-200 dark:text-white">${news.title}</h3>
+                            <p class="text-gray-600 dark:text-gray-400 mb-4">${news.text.split(' ').slice(0, 50).join(' ')}...</p>
                             <div class="flex justify-between items-center">
-                                <span class="text-gray-500">${news.publish_date}</span>
+                                <span class="text-gray-500 dark:text-gray-400">${news.publish_date}</span>
                                 <div class="space-x-2">
                                     <button class="text-blue-600 hover:text-blue-800 transition-colors duration-200 read-more-btn">Read More</button>
                                     <a href="${news.url}" target="_blank" class="inline-flex items-center text-blue-600 hover:text-blue-800 transition-colors duration-200">
@@ -375,7 +651,7 @@ document.getElementById('load-more-indian').addEventListener('click', function()
                                 </div>
                             </div>
                             <div class="mt-4 hidden full-content">
-                                <p class="text-gray-600">${news.text}</p>
+                                <p class="text-gray-600 dark:text-gray-400">${news.text}</p>
                             </div>
                         </div>
                     </div>
@@ -421,5 +697,15 @@ document.querySelectorAll('.market-tab').forEach(tab => {
         document.getElementById(`${this.dataset.type}-container`).classList.remove('hidden');
     });
 });
+
+// Carousel Scrolling Logic
+function scrollCarousel(carouselId, direction) {
+    const container = document.getElementById(carouselId);
+    if (container) {
+        // Calculate the scroll amount equal to one card width plus the gap (approx 360px)
+        const scrollAmount = 370 * direction;
+        container.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+    }
+}
 </script>
-{% endblock %} 
+{% endblock %}

@@ -14,6 +14,7 @@ from django.db import models
 from django.utils import timezone
 import os
 import uuid
+import json
 
 def get_market_data():
     import requests
@@ -34,9 +35,9 @@ def get_market_data():
         # Fetch stock data
         for symbol in STOCK_SYMBOLS:
             quote = requests.get(f'{BASE_URL}/quote', 
-                               params={'symbol': symbol, 'token': API_KEY})
+                               params={'symbol': symbol, 'token': API_KEY}, timeout=5)
             profile = requests.get(f'{BASE_URL}/stock/profile2', 
-                                 params={'symbol': symbol, 'token': API_KEY})
+                                 params={'symbol': symbol, 'token': API_KEY}, timeout=5)
             
             if quote.status_code == 200 and profile.status_code == 200:
                 quote_data = quote.json()
@@ -53,7 +54,7 @@ def get_market_data():
         # Fetch crypto data
         for symbol in CRYPTO_SYMBOLS:
             quote = requests.get(f'{BASE_URL}/quote', 
-                               params={'symbol': symbol, 'token': API_KEY})
+                               params={'symbol': symbol, 'token': API_KEY}, timeout=5)
             
             if quote.status_code == 200:
                 quote_data = quote.json()
@@ -76,6 +77,8 @@ def get_market_data():
     }
 
 def landing_page(request):
+    from .trending_engine import get_trending_data
+
     # Get the 3 most recent news posts for trending section
     trending_news = News.objects.select_related('author', 'author__profile').prefetch_related(
         'images', 'likes', 'comments', 'shares', 'hashtags'
@@ -86,19 +89,8 @@ def landing_page(request):
         'images', 'likes', 'comments', 'shares', 'hashtags'
     ).order_by('-created_at')[3:]  # Skip the first 3 as they're in trending
     
-    # Get trending hashtags for world news
-    global_trending_tags = (
-        Hashtag.objects
-        .filter(news_posts__content__iregex=r'\b(world|global|international)\b')
-        .order_by('-total_count')[:5]
-    )
-    
-    # Get trending hashtags for Indian news
-    india_trending_tags = (
-        Hashtag.objects
-        .filter(news_posts__content__iregex=r'\b(india|indian)\b')
-        .order_by('-total_count')[:5]
-    )
+    # Get geo-trending data from trending engine
+    trending_data = get_trending_data()
     
     # Fetch market data
     market_data = get_market_data()
@@ -116,7 +108,8 @@ def landing_page(request):
                 'api-key': api_key,
                 'text': 'world',
                 'number': 5
-            }
+            },
+            timeout=5
         )
         if world_response.status_code == 200:
             world_news = world_response.json().get('news', [])
@@ -128,7 +121,8 @@ def landing_page(request):
                 'api-key': api_key,
                 'text': 'India',
                 'number': 5
-            }
+            },
+            timeout=5
         )
         if indian_response.status_code == 200:
             indian_news = indian_response.json().get('news', [])
@@ -141,8 +135,10 @@ def landing_page(request):
         'indian_news': indian_news,
         'trending_news': trending_news,
         'news_feed': news_feed,
-        'global_trending_tags': global_trending_tags,
-        'india_trending_tags': india_trending_tags,
+        'india_trending_tags': trending_data['india_hashtags'],
+        'global_trending_tags': trending_data['global_hashtags'],
+        'india_trending_posts': trending_data['india_posts'],
+        'global_trending_posts': trending_data['global_posts'],
         'debug': settings.DEBUG,
     }
 
@@ -161,11 +157,16 @@ def explore_page(request):
     external_news = []  # For API-fetched personalized news
     is_personalized = False
     
+    global_trending_posts = []
+    india_trending_posts = []
+    
     if active_filter == 'trending':
-        # Get trending news based on engagement score in the last 7 days
-        seven_days_ago = timezone.now() - timezone.timedelta(days=7)
-        news_items = news_queryset.filter(created_at__gte=seven_days_ago)\
-            .order_by('-engagement_score', '-created_at')
+        from .trending_engine import get_trending_data
+        trending_data = get_trending_data()
+        
+        global_trending_posts = trending_data['global_posts']
+        india_trending_posts = trending_data['india_posts']
+        news_items = []  # Handled separately in template
     elif active_filter == 'for_you':
         # Use the recommendation engine for personalized feed
         from .recommendation_engine import generate_personalized_feed
@@ -209,6 +210,8 @@ def explore_page(request):
         'active_filter': active_filter,
         'external_news': external_news,
         'is_personalized': is_personalized,
+        'global_trending_posts': global_trending_posts,
+        'india_trending_posts': india_trending_posts,
     }
     return render(request, 'news/explore.html', context)
 
@@ -216,8 +219,12 @@ def explore_page(request):
 def create_news(request):
     if request.method == 'POST':
         try:
+            print(f"--- POST DATA ---")
+            print(f"POST dict: {request.POST}")
+            print(f"FILES dict: {request.FILES}")
             form = NewsForm(request.POST, request.FILES)
             if form.is_valid():
+                print(f"CLEANED DATA: {form.cleaned_data}")
                 news = form.save(commit=False)
                 news.author = request.user
                 
@@ -265,6 +272,12 @@ def create_news(request):
                 news.process_hashtags(hashtags)
                 tagged_users = form.cleaned_data.get('tagged_users', '')
                 news.process_tagged_users(tagged_users)
+                
+                # Auto-categorize geo using the Geo Engine
+                from .geo_engine import categorize_post, update_hashtag_affinity
+                news.geo_category = categorize_post(news)
+                news.save(update_fields=['geo_category'])
+                update_hashtag_affinity(news)
                 
                 messages.success(request, 'News article created successfully!')
                 return redirect('news:news_detail', pk=news.pk)
@@ -542,13 +555,18 @@ def user_profile(request, username):
     
     is_following = request.user.is_authenticated and request.user.profile.following.filter(user=profile_user).exists()
     
+    followers_list = user_profile.followers.all().select_related('user')
+    following_list = user_profile.following.all().select_related('user')
+    
     context = {
         'profile_user': profile_user,
         'user_profile': user_profile,
         'news_items': news_items,
         'is_following': is_following,
-        'followers_count': user_profile.followers.count(),
-        'following_count': user_profile.following.count()
+        'followers_count': followers_list.count(),
+        'following_count': following_list.count(),
+        'followers_list': followers_list,
+        'following_list': following_list,
     }
     return render(request, 'news/user_profile.html', context)
 
@@ -664,7 +682,8 @@ def world_news_api(request):
                 'text': 'world',
                 'number': 5,
                 'offset': (page - 1) * 5
-            }
+            },
+            timeout=5
         )
         if response.status_code == 200:
             data = response.json()
@@ -689,7 +708,8 @@ def indian_news_api(request):
                 'text': 'India',
                 'number': 5,
                 'offset': (page - 1) * 5
-            }
+            },
+            timeout=5
         )
         if response.status_code == 200:
             data = response.json()
@@ -1086,4 +1106,40 @@ def api_track_interaction(request):
         return JsonResponse({'success': False, 'error': str(e)})
 
 
+def api_geo_trending(request):
+    """AJAX endpoint for geo-trending data (hashtags + posts) for live refresh."""
+    from .trending_engine import get_trending_hashtags, get_trending_posts
 
+    category = request.GET.get('category', 'india')
+    if category not in ('india', 'global'):
+        category = 'india'
+
+    hashtags = get_trending_hashtags(category, limit=5)
+    posts_data = get_trending_posts(category, limit=6)
+
+    # Serialize posts for JSON
+    posts = []
+    for item in posts_data:
+        news = item['news']
+        first_image = news.images.first()
+        posts.append({
+            'id': news.pk,
+            'title': news.title,
+            'content': news.content[:150],
+            'author': news.author.username,
+            'author_avatar': news.author.profile.avatar.url if hasattr(news.author, 'profile') else '',
+            'image': first_image.image.url if first_image else None,
+            'likes_count': news.likes.count(),
+            'comments_count': news.comments.count(),
+            'shares_count': news.shares.count(),
+            'velocity': item['velocity'],
+            'created_at': news.created_at.strftime('%B %d, %Y %H:%M'),
+            'hashtags': [h.name for h in news.hashtags.all()],
+        })
+
+    return JsonResponse({
+        'success': True,
+        'category': category,
+        'hashtags': hashtags,
+        'posts': posts,
+    })

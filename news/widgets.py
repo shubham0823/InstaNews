@@ -1,6 +1,6 @@
-from django.forms import ClearableFileInput
+from django.forms import FileInput
 
-class MultipleFileInput(ClearableFileInput):
+class MultipleFileInput(FileInput):
     allow_multiple_selected = True
 
     def __init__(self, attrs=None):
@@ -9,5 +9,6 @@ class MultipleFileInput(ClearableFileInput):
 
     def value_from_datadict(self, data, files, name):
         if hasattr(files, 'getlist'):
-            return files.getlist(name)
+            upload = files.getlist(name)
+            return upload if upload else None
         return files.get(name) 

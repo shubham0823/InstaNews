@@ -1,0 +1,45 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "news_website/wsgi.py",
+      "use": "@vercel/python",
+      "config": { "maxLambdaSize": "15mb", "runtime": "python3.12" }
+    },
+    {
+      "src": "frontend/package.json",
+      "use": "@vercel/static-build",
+      "config": { "distDir": "dist" }
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "news_website/wsgi.py"
+    },
+    {
+      "src": "/admin/(.*)",
+      "dest": "news_website/wsgi.py"
+    },
+    {
+      "src": "/static/(.*)",
+      "dest": "news_website/wsgi.py"
+    },
+    {
+      "src": "/media/(.*)",
+      "dest": "news_website/wsgi.py"
+    },
+    {
+      "handle": "filesystem"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "frontend/$1",
+      "check": true
+    },
+    {
+      "src": "/(.*)",
+      "dest": "frontend/index.html"
+    }
+  ]
+}

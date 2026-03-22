@@ -4,4 +4,8 @@ requests==2.32.3
 python-dotenv==1.0.1
 django-crispy-forms==2.1
 crispy-tailwind==1.0.0
-feedparser==6.0.12 
+feedparser==6.0.12
+gunicorn
+whitenoise
+dj-database-url
+psycopg2-binary

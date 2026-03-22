@@ -9,6 +9,8 @@ class Profile(models.Model):
     bio = models.TextField(max_length=500, blank=True)
     avatar = models.ImageField(upload_to='avatars/', default='avatars/default.svg')
     following = models.ManyToManyField('self', symmetrical=False, related_name='followers', blank=True)
+    country = models.CharField(max_length=100, default='India', blank=True)
+    timezone = models.CharField(max_length=50, blank=True)
 
     def __str__(self):
         return f"{self.user.username}'s profile"
@@ -17,6 +19,7 @@ class Hashtag(models.Model):
     name = models.CharField(max_length=100, unique=True)
     created_at = models.DateTimeField(auto_now_add=True)
     total_count = models.IntegerField(default=0)
+    geo_affinity = models.CharField(max_length=10, blank=True, default='')
 
     def __str__(self):
         return self.name
@@ -30,6 +33,11 @@ class News(models.Model):
         ('long', 'Long Format'),
     )
 
+    GEO_CATEGORIES = (
+        ('india', 'India'),
+        ('global', 'Global'),
+    )
+
     author = models.ForeignKey(User, on_delete=models.CASCADE)
     title = models.CharField(max_length=200)
     content = models.TextField()
@@ -38,6 +46,7 @@ class News(models.Model):
     news_type = models.CharField(max_length=10, choices=NEWS_TYPES)
     likes = models.ManyToManyField(User, related_name='liked_news', blank=True)
     views = models.IntegerField(default=0)
+    geo_category = models.CharField(max_length=10, choices=GEO_CATEGORIES, default='india')
     
     # For long format news
     video = models.FileField(upload_to='news_videos/', null=True, blank=True)

@@ -68,6 +68,66 @@
     .news-card:nth-child(6) {
         animation-delay: 0.3s;
     }
+
+    /* Hashtag Pills */
+    .hashtag-pill {
+        display: inline-flex;
+        align-items: center;
+        padding: 6px 14px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.25s ease;
+        text-decoration: none;
+        white-space: nowrap;
+    }
+    .hashtag-pill-india {
+        background: linear-gradient(135deg, rgba(249,115,22,0.12), rgba(239,68,68,0.12));
+        color: #ea580c;
+        border: 1px solid rgba(249,115,22,0.2);
+    }
+    .hashtag-pill-india:hover {
+        background: linear-gradient(135deg, rgba(249,115,22,0.22), rgba(239,68,68,0.22));
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(249,115,22,0.2);
+    }
+    .hashtag-pill-global {
+        background: linear-gradient(135deg, rgba(59,130,246,0.12), rgba(139,92,246,0.12));
+        color: #3b82f6;
+        border: 1px solid rgba(59,130,246,0.2);
+    }
+    .hashtag-pill-global:hover {
+        background: linear-gradient(135deg, rgba(59,130,246,0.22), rgba(139,92,246,0.22));
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(59,130,246,0.2);
+    }
+    .dark .hashtag-pill-india {
+        background: linear-gradient(135deg, rgba(249,115,22,0.15), rgba(239,68,68,0.15));
+        border-color: rgba(249,115,22,0.3);
+    }
+    .dark .hashtag-pill-global {
+        background: linear-gradient(135deg, rgba(59,130,246,0.15), rgba(139,92,246,0.15));
+        border-color: rgba(59,130,246,0.3);
+    }
+
+    .hashtag-score {
+        font-size: 10px;
+        padding: 1px 6px;
+        border-radius: 8px;
+        margin-left: 6px;
+        font-weight: 700;
+    }
+    .hashtag-score-india {
+        background: rgba(249,115,22,0.2);
+        color: #c2410c;
+    }
+    .hashtag-score-global {
+        background: rgba(59,130,246,0.2);
+        color: #1d4ed8;
+    }
+    .dark .hashtag-score-india { color: #fb923c; }
+    .dark .hashtag-score-global { color: #93c5fd; }
 </style>
 {% endblock %}
 
@@ -93,9 +153,9 @@
                 data-filter="for_you">
                 <i class="fas fa-magic mr-2 text-purple-500"></i>
                 For You
-                {% if is_personalized %}<span
-                    class="ml-1 px-1.5 py-0.5 bg-purple-100 dark:bg-purple-900/30 text-purple-600 text-xs rounded-full">Personalized</span>{%
-                endif %}
+                {% if is_personalized %}
+                <span class="ml-1 px-1.5 py-0.5 bg-purple-100 dark:bg-purple-900/30 text-purple-600 text-xs rounded-full">Personalized</span>
+                {% endif %}
             </button>
             <button
                 class="filter-tab whitespace-nowrap pb-4 px-1 border-b-2 font-medium text-sm {% if active_filter == 'followers' %}border-blue-500 text-blue-600{% else %}border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300{% endif %}"
@@ -179,99 +239,121 @@
     {% endif %}
     {% endif %}
 
-    <!-- Local News Feed -->
-    <div id="news-feed" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {% for news in news_items %}
-        <article
-            class="news-card bg-white dark:bg-dark-card rounded-2xl shadow-md overflow-hidden transform hover:-translate-y-1 transition-all duration-300 hover:shadow-xl">
-            <!-- Author Info -->
-            <div class="p-4 border-b dark:border-gray-700">
-                <div class="flex items-center">
-                    <a href="{% url 'news:user_profile' news.author.username %}"
-                        class="flex items-center hover:text-blue-600">
-                        <img src="{{ news.author.profile.avatar.url }}" alt="{{ news.author.username }}"
-                            class="h-10 w-10 rounded-full object-cover ring-2 ring-gray-200 dark:ring-gray-700">
-                        <div class="ml-3">
-                            <p class="text-sm font-medium text-gray-900 dark:text-white">{{ news.author.username }}</p>
-                            <p class="text-sm text-gray-500 dark:text-gray-400">{{ news.created_at|timesince }} ago</p>
-                        </div>
-                    </a>
+    <!-- News Feed Area -->
+    <div id="news-feed">
+        {% if active_filter == 'trending' %}
+            
+            <!-- Geo-Trending Toggle -->
+            <div class="flex justify-start px-1 mb-8">
+                <div class="inline-flex bg-gray-100 dark:bg-dark-secondary rounded-xl p-1 shadow-sm">
+                    <button id="btn-global-trending" onclick="toggleGeoTrending('global')" class="px-6 py-2.5 rounded-lg text-sm font-bold transition-all duration-300 bg-white dark:bg-dark-card shadow text-blue-600 dark:text-blue-400">🌍 Global</button>
+                    <button id="btn-india-trending" onclick="toggleGeoTrending('india')" class="px-6 py-2.5 rounded-lg text-sm font-bold transition-all duration-300 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">🇮🇳 India</button>
                 </div>
             </div>
 
-            <!-- News Content -->
-            {% if news.images.first %}
-            <div class="relative h-44">
-                <img src="{{ news.images.first.image.url }}" alt="{{ news.title }}"
-                    class="absolute inset-0 w-full h-full object-cover">
-            </div>
-            {% endif %}
-
-            <div class="p-4">
-                <h2 class="text-lg font-semibold mb-2 text-gray-900 dark:text-white">
-                    <a href="{% url 'news:news_detail' news.pk %}"
-                        class="hover:text-blue-600 transition-colors duration-200">
-                        {{ news.title }}
+            <!-- Global Trending Section -->
+            <div id="section-global-trending" class="mb-12">
+                {% if global_trending_tags %}
+                <div class="mb-8 flex flex-wrap gap-3 justify-start px-1">
+                    {% for tag in global_trending_tags|slice:":5" %}
+                    <a href="{% url 'news:hashtag' tag.name %}" class="hashtag-pill hashtag-pill-global">
+                        <span>#{{ tag.name|truncatechars:20 }}</span>
+                        <span class="hashtag-score hashtag-score-global">{{ tag.score }}</span>
                     </a>
-                </h2>
-
-                <p class="text-gray-600 dark:text-gray-400 mb-4 text-sm line-clamp-2">{{ news.content|truncatewords:20
-                    }}</p>
-
-                <!-- Social Interactions -->
-                <div class="flex items-center justify-between mt-4 pt-4 border-t dark:border-gray-700">
-                    <div class="flex space-x-4">
-                        <button
-                            class="like-btn flex items-center space-x-1 text-gray-500 hover:text-blue-600 transition-colors duration-200"
-                            data-news-id="{{ news.pk }}">
-                            <i class="far fa-heart {% if user in news.likes.all %}text-red-500{% endif %}"></i>
-                            <span class="likes-count">{{ news.likes.count }}</span>
-                        </button>
-                        <a href="{% url 'news:news_detail' news.pk %}#comments"
-                            class="flex items-center space-x-1 text-gray-500 hover:text-blue-600 transition-colors duration-200">
-                            <i class="far fa-comment"></i>
-                            <span>{{ news.comments.count }}</span>
-                        </a>
-                        <button
-                            class="share-btn flex items-center space-x-1 text-gray-500 hover:text-blue-600 transition-colors duration-200"
-                            data-news-id="{{ news.pk }}">
-                            <i class="far fa-share-square"></i>
-                            <span class="shares-count">{{ news.shares.count }}</span>
-                        </button>
-                    </div>
-                    <a href="{% url 'news:news_detail' news.pk %}"
-                        class="text-blue-600 hover:text-blue-800 transition-colors duration-200 text-sm">Read More</a>
+                    {% endfor %}
                 </div>
-            </div>
-        </article>
-        {% empty %}
-        {% if active_filter != 'for_you' or not external_news %}
-        <div class="col-span-full text-center py-12">
-            <div
-                class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-100 dark:bg-dark-secondary mb-4">
-                <i class="fas fa-newspaper text-2xl text-gray-400"></i>
-            </div>
-            <h3 class="mt-2 text-sm font-medium text-gray-900 dark:text-white">No news found</h3>
-            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                {% if active_filter == 'followers' %}
-                Start following people to see their news here.
-                {% elif active_filter == 'for_you' %}
-                We're still learning your preferences. Try searching or exploring content!
-                {% else %}
-                Check back later for more news.
                 {% endif %}
-            </p>
-            {% if active_filter == 'followers' %}
-            <div class="mt-6">
-                <a href="{% url 'news:landing_page' %}"
-                    class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 transition-colors duration-200">
-                    Discover Users
-                </a>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {% for item in global_trending_posts %}
+                        {% include 'news/includes/news_card.html' with news=item.news %}
+                    {% empty %}
+                        <div class="col-span-full text-center py-8">
+                            <p class="text-gray-500 dark:text-gray-400">No global trending news available yet.</p>
+                        </div>
+                    {% endfor %}
+                </div>
             </div>
-            {% endif %}
-        </div>
+
+            <!-- India Trending Section -->
+            <div id="section-india-trending" class="mb-8 hidden">
+                {% if india_trending_tags %}
+                <div class="mb-8 flex flex-wrap gap-3 justify-start px-1">
+                    {% for tag in india_trending_tags|slice:":5" %}
+                    <a href="{% url 'news:hashtag' tag.name %}" class="hashtag-pill hashtag-pill-india">
+                        <span>#{{ tag.name|truncatechars:20 }}</span>
+                        <span class="hashtag-score hashtag-score-india">{{ tag.score }}</span>
+                    </a>
+                    {% endfor %}
+                </div>
+                {% endif %}
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {% for item in india_trending_posts %}
+                        {% include 'news/includes/news_card.html' with news=item.news %}
+                    {% empty %}
+                        <div class="col-span-full text-center py-8">
+                            <p class="text-gray-500 dark:text-gray-400">No India trending news available yet.</p>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <script>
+                function toggleGeoTrending(category) {
+                    const btnGlobal = document.getElementById('btn-global-trending');
+                    const btnIndia = document.getElementById('btn-india-trending');
+                    const secGlobal = document.getElementById('section-global-trending');
+                    const secIndia = document.getElementById('section-india-trending');
+
+                    if (category === 'global') {
+                        btnGlobal.className = "px-6 py-2.5 rounded-lg text-sm font-bold transition-all duration-300 bg-white dark:bg-dark-card shadow text-blue-600 dark:text-blue-400";
+                        btnIndia.className = "px-6 py-2.5 rounded-lg text-sm font-bold transition-all duration-300 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200";
+                        
+                        secGlobal.classList.remove('hidden');
+                        secIndia.classList.add('hidden');
+                    } else {
+                        btnIndia.className = "px-6 py-2.5 rounded-lg text-sm font-bold transition-all duration-300 bg-white dark:bg-dark-card shadow text-blue-600 dark:text-blue-400";
+                        btnGlobal.className = "px-6 py-2.5 rounded-lg text-sm font-bold transition-all duration-300 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200";
+                        
+                        secIndia.classList.remove('hidden');
+                        secGlobal.classList.add('hidden');
+                    }
+                }
+            </script>
+
+        {% else %}
+            <!-- Standard Local News Feed -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {% for news in news_items %}
+                    {% include 'news/includes/news_card.html' with news=news %}
+                {% empty %}
+                    {% if active_filter != 'for_you' or not external_news %}
+                    <div class="col-span-full text-center py-12">
+                        <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-100 dark:bg-dark-secondary mb-4">
+                            <i class="fas fa-newspaper text-2xl text-gray-400"></i>
+                        </div>
+                        <h3 class="mt-2 text-sm font-medium text-gray-900 dark:text-white">No news found</h3>
+                        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                            {% if active_filter == 'followers' %}
+                            Start following people to see their news here.
+                            {% elif active_filter == 'for_you' %}
+                            We're still learning your preferences. Try searching or exploring content!
+                            {% else %}
+                            Check back later for more news.
+                            {% endif %}
+                        </p>
+                        {% if active_filter == 'followers' %}
+                        <div class="mt-6">
+                            <a href="{% url 'news:landing_page' %}"
+                                class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 transition-colors duration-200">
+                                Discover Users
+                            </a>
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                {% endfor %}
+            </div>
         {% endif %}
-        {% endfor %}
     </div>
 
     <!-- Pagination -->
