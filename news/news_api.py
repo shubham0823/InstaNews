@@ -9,12 +9,13 @@ from django.core.cache import cache
 from datetime import datetime, timedelta
 import logging
 import re
+import os
 from html import unescape
 
 logger = logging.getLogger(__name__)
 
 # API Configuration
-NEWS_API_KEY = 'bd40aef1bd484cbab8e8af49ce1b6e8f'
+NEWS_API_KEY = os.environ.get('NEWS_API_KEY', '')
 NEWS_API_BASE_URL = 'https://newsapi.org/v2'
 GOOGLE_NEWS_RSS_URL = 'https://news.google.com/rss/search?q={query}&hl=en-IN&gl=IN&ceid=IN:en'
 

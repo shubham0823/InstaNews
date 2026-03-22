@@ -20,7 +20,7 @@ def get_market_data():
     import requests
     
     # Finnhub API configuration
-    API_KEY = 'cu4gcr1r01qna2rnb3t0cu4gcr1r01qna2rnb3tg'
+    API_KEY = os.environ.get('FINNHUB_API_KEY', '')
     BASE_URL = 'https://finnhub.io/api/v1'
     
     # List of stock symbols to track

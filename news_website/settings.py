@@ -12,6 +12,10 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 
 from pathlib import Path
 import os
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -21,12 +25,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-5=diyw146k6z5*ta4n_kgn+k1jswh8qhl0^2^&4uwd!%p6b_c3'
+SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-default-key-for-dev')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.environ.get('DEBUG', 'True') == 'True'
 
-ALLOWED_HOSTS = ['.vercel.app', 'localhost', '127.0.0.1']
+ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '.vercel.app,localhost,127.0.0.1').split(',')
 
 
 # Application definition
@@ -159,7 +163,7 @@ FILE_UPLOAD_HANDLERS = [
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # World News API Key
-WORLD_NEWS_API_KEY = '7d869504c34343f092426948bf3e946c'
+WORLD_NEWS_API_KEY = os.environ.get('WORLD_NEWS_API_KEY', '')
 
 # Authentication settings
 LOGIN_REDIRECT_URL = 'news:landing_page'
@@ -167,22 +171,23 @@ LOGOUT_REDIRECT_URL = 'news:landing_page'
 LOGIN_URL = 'accounts:login'
 
 # Email settings (for password reset)
-EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'  # For development
+EMAIL_BACKEND = os.environ.get('EMAIL_BACKEND', 'django.core.mail.backends.console.EmailBackend')
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
-EMAIL_HOST_USER = 'your-email@gmail.com'  # Replace with your email
-EMAIL_HOST_USER_PASSWORD = 'your-app-password'  # Replace with your app password
-
-# For production, use environment variables
-# EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER')
-# EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD')
+EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', 'your-email@gmail.com')
+EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', 'your-app-password')
 
 # Default from email
-DEFAULT_FROM_EMAIL = 'NewsHub <noreply@newshub.com>'
+DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'NewsHub <noreply@newshub.com>')
 
 # CORS Configuration
-CORS_ALLOW_ALL_ORIGINS = True
+_cors_origins = os.environ.get('CORS_ALLOWED_ORIGINS', '')
+if _cors_origins:
+    CORS_ALLOW_ALL_ORIGINS = False
+    CORS_ALLOWED_ORIGINS = [o.strip() for o in _cors_origins.split(',')]
+else:
+    CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOW_CREDENTIALS = True
 
 # REST Framework Configuration

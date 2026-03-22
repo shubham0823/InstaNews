@@ -30,6 +30,14 @@
       "dest": "news_website/wsgi.py"
     },
     {
+      "src": "/accounts/(.*)",
+      "dest": "news_website/wsgi.py"
+    },
+    {
+      "src": "/news/(.*)",
+      "dest": "news_website/wsgi.py"
+    },
+    {
       "handle": "filesystem"
     },
     {
