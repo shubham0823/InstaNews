@@ -1,80 +1,115 @@
-# NewsHub - Social News Platform
+# NewsHub — Premium Social News Platform
 
-A modern news platform that combines traditional news aggregation with social media features. Users can create, share, and interact with news in both short and long formats.
+NewsHub is a bleeding-edge news platform that merges traditional news aggregation with modern social media mechanics. It features a fully decoupled architecture with a **Django REST Framework (DRF)** backend and a **React (Vite)** Single Page Application (SPA) frontend, designed for high performance and premium UI/UX.
 
-## Features
+---
 
-- User authentication and profiles
-- Short and long format news posts
-- Image and video support
-- Social features (likes, comments, shares)
-- Follow system
-- World news integration via World News API
-- Trending news section
-- Stock market updates
-- Responsive design using Tailwind CSS
+## 🚀 Tech Stack
 
-## Setup
+### Backend (API Engine)
+- **Django 5.1** & **Django REST Framework**
+- **JWT (SimpleJWT)** — Secure stateless authentication
+- **PostgreSQL** — Production database support (via `dj-database-url`)
+- **WhiteNoise** — Efficient static file serving
+- **Common APIs** — NewsAPI, World News API, Finnhub Financial API
 
-1. Clone the repository:
+### Frontend (SPA)
+- **React 18** (Vite-powered)
+- **Tailwind CSS** — Modern utility-first styling with Glassmorphism
+- **Framer Motion** — Fluid page transitions and micro-interactions
+- **React Query (TanStack)** — Powerful server-state management
+- **Axios** — Custom interceptors for automatic JWT handling
+- **Lucide React** — Crisp, consistent iconography
+
+---
+
+## ✨ Core Features
+
+- **Decoupled Architecture**: Blazing fast SPA frontend communicating via REST APIs.
+- **Dual Trending Carousels**: Real-time "India Trending" vs "World Trending" news sections with velocity scoring.
+- **Interactive Feed**: Personalized "For You" feed based on your follow network.
+- **Post Composition**: Advanced modal-based creator supporting high-res **Video** and **Multiple Images**.
+- **Social Ecosystem**: Likes, comments, shares, and a robust user follow system.
+- **Dynamic Profiles**: Rich user profiles with unique bios, follower counts, and post history.
+- **Geo-Smart Logic**: Automatic categorization of news into regional and global buckets.
+- **Market Ticker**: Real-time stock and crypto market updates via financial APIs.
+
+---
+
+## 🛠️ Local Development Setup
+
+### 1. Backend Setup
 ```bash
+# Clone the repository
 git clone <repository-url>
-cd news-website
-```
+cd InstaNews
 
-2. Create and activate a virtual environment:
-```bash
+# Create and activate virtual environment
 python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-```
+source venv/bin/activate  # Windows: venv\Scripts\activate
 
-3. Install dependencies:
-```bash
+# Install dependencies
 pip install -r requirements.txt
-```
 
-4. Set up environment variables:
-Create a `.env` file in the project root and add:
-```
-WORLD_NEWS_API_KEY=your_api_key_here
-SECRET_KEY=your_django_secret_key
-DEBUG=True
-```
-
-5. Run migrations:
-```bash
-python manage.py makemigrations
+# Run migrations and start server
 python manage.py migrate
-```
-
-6. Create a superuser:
-```bash
-python manage.py createsuperuser
-```
-
-7. Run the development server:
-```bash
 python manage.py runserver
 ```
 
-Visit `http://localhost:8000` to access the application.
+### 2. Frontend Setup
+On a separate terminal:
+```bash
+cd frontend
+npm install
+npm run dev
+```
+The application will be available at `http://localhost:5173`.
 
-## Project Structure
+---
 
-- `news/` - Main application directory
-  - `models.py` - Database models
-  - `views.py` - View functions
-  - `urls.py` - URL routing
-  - `admin.py` - Admin interface configuration
-  - `signals.py` - Signal handlers
+## 🔑 Environment Variables
 
-- `templates/` - HTML templates
-  - `base.html` - Base template
-  - `news/` - News-specific templates
+The project uses a `.env` file for configuration. See `.env.example` for the full template.
 
-- `static/` - Static files (CSS, JavaScript, images)
+| Key | Description |
+|---|---|
+| `SECRET_KEY` | Django secret key for security |
+| `DEBUG` | Set to `False` in production |
+| `DATABASE_URL` | PostgreSQL connection string |
+| `NEWS_API_KEY` | Key from newsapi.org |
+| `WORLD_NEWS_API_KEY` | Key from worldnewsapi.com |
+| `FINNHUB_API_KEY` | Key from finnhub.io |
 
-- `media/` - User-uploaded files
-  - `avatars/` - User profile pictures
-  - `news_images/` - News post images
-  - `news_videos/` - News post videos
+---
+
+## ☁️ Deployment (Vercel)
+
+This project is optimized for deployment on **Vercel**.
+
+1. **Connect Repository**: Sync your GitHub/GitLab repo to Vercel.
+2. **Environment Variables**: Add all keys from `.env.example` to Vercel's Environment Variables settings.
+3. **Build Settings**: Vercel will automatically detect `vercel.json` and build both the Python backend and React frontend.
+4. **PostgreSQL**: Connect a Vercel Postgres or Neon database and provide the `DATABASE_URL`.
+
+---
+
+## 📁 Project Structure
+
+```text
+InstaNews/
+├── accounts/           # User & Profile logic
+├── news/               # News, Trending & Social logic
+├── news_website/       # Django project core configuration
+├── frontend/           # React SPA (Vite, Tailwind, Framer)
+│   ├── src/components/ # Atomic UI & News components
+│   └── src/pages/      # Route-level pages (Home, Explore, Login)
+├── templates/          # Backend fallback templates
+├── static/             # Global static assets
+├── vercel.json         # Deployment configuration
+└── .env.example        # Configuration template
+```
+
+---
+
+## 🛡️ License
+Distributed under the MIT License. See `LICENSE` for more information.
