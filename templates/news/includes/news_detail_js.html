@@ -23,23 +23,9 @@
         });
     }
 
-    // Share functionality
-    const shareButton = document.getElementById('shareButton');
-    if (shareButton) {
-        shareButton.addEventListener('click', function() {
-            const newsId = this.dataset.newsId;
-            fetch(`/news/${newsId}/share/`, {
-                method: 'POST',
-                headers: {
-                    'X-CSRFToken': '{{ csrf_token }}',
-                },
-            })
-            .then(response => response.json())
-            .then(data => {
-                document.getElementById('sharesCount').textContent = data.shares_count;
-            });
-        });
-    }
+
+    // Reshare is now handled globally via reshare_js.html
+
 
     // Comment functionality
     const commentForm = document.getElementById('commentForm');
@@ -153,4 +139,76 @@
             });
         });
     });
+
+    // --- Trust Score Modal & Actions ---
+    function openDisputeModal() {
+        document.getElementById('disputeModal').classList.remove('hidden');
+    }
+
+    function closeDisputeModal() {
+        document.getElementById('disputeModal').classList.add('hidden');
+    }
+
+    function submitTrustVote(voteType, disputeReason = 'none') {
+        const url = `/news/{{ news.pk }}/trust-vote/`;
+        fetch(url, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                vote_type: voteType,
+                dispute_reason: disputeReason
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                closeDisputeModal();
+                // Hide action buttons
+                document.getElementById('trust-action-panel').classList.add('hidden');
+                
+                // Show reveal panel with basic animation transition
+                const revealPanel = document.getElementById('trust-score-reveal');
+                revealPanel.classList.remove('hidden');
+                revealPanel.classList.add('opacity-0');
+                
+                // Set true values
+                const bar = document.getElementById('revealed-trust-bar');
+                const pct = document.getElementById('revealed-trust-percentage');
+                if(bar && pct) {
+                    // Start bar at 0 for animation effect
+                    bar.style.width = '0%';
+                    pct.innerText = data.trust_score + '%';
+                    
+                    // Reveal the reason if exists
+                    if (data.top_dispute) {
+                        const topDisputeElt = document.getElementById('top-dispute-container');
+                        document.getElementById('top-dispute-reason').innerText = data.top_dispute;
+                        topDisputeElt.classList.remove('hidden');
+                    }
+
+                    setTimeout(() => {
+                        revealPanel.classList.remove('opacity-0');
+                        revealPanel.classList.add('opacity-100');
+                        bar.style.width = data.trust_score + '%';
+                    }, 50);
+                }
+                
+                // Show a small success toast
+                const alertContainer = document.createElement('div');
+                alertContainer.className = 'fixed bottom-4 right-4 bg-green-500 text-white px-6 py-3 rounded-xl shadow-lg z-50 animate-bounce';
+                alertContainer.innerHTML = '<i class="fas fa-check-circle mr-2"></i> Thank you! Your vote helps keep the community safe.';
+                document.body.appendChild(alertContainer);
+                setTimeout(() => alertContainer.remove(), 4000);
+            } else {
+                alert(data.error || 'Failed to submit vote. Please try again.');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred. Please try again.');
+        });
+    }
 </script> 

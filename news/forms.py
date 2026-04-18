@@ -121,7 +121,9 @@ class NewsForm(forms.ModelForm):
         news_type = self.cleaned_data.get('news_type')
         media_type = self.cleaned_data.get('media_type')
 
-        if video:
+        from django.core.files.uploadedfile import UploadedFile
+        
+        if video and isinstance(video, UploadedFile):
             if news_type == 'short' and media_type == 'video':
                 # Check video duration using ffprobe
                 try:

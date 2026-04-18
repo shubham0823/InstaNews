@@ -72,10 +72,14 @@ def profile(request):
     # Get user's news posts
     user_news = News.objects.filter(author=request.user).order_by('-created_at')
     
+    # Get user's reshared news
+    reshared_news = News.objects.filter(shares__user=request.user).order_by('-shares__shared_at')
+    
     context = {
         'u_form': u_form,
         'p_form': p_form,
-        'user_news': user_news
+        'user_news': user_news,
+        'reshared_news': reshared_news
     }
     return render(request, 'accounts/profile.html', context)
 
@@ -83,6 +87,7 @@ def profile(request):
 def user_profile(request, username):
     user = get_object_or_404(User, username=username)
     user_news = News.objects.filter(author=user).order_by('-created_at')
+    reshared_news = News.objects.filter(shares__user=user).order_by('-shares__shared_at')
     
     # Check if the current user follows this user
     is_following = False
@@ -92,6 +97,7 @@ def user_profile(request, username):
     context = {
         'profile_user': user,
         'user_news': user_news,
+        'reshared_news': reshared_news,
         'is_following': is_following
     }
     return render(request, 'accounts/user_profile.html', context)

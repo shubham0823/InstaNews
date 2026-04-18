@@ -180,55 +180,7 @@
         <!-- News Grid -->
         <div id="news-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {% for article in articles %}
-            <article
-                class="news-card bg-white dark:bg-dark-card rounded-2xl shadow-md overflow-hidden transition-all duration-300"
-                data-url="{{ article.url }}" data-source="{{ article.source }}" onclick="trackClick(this)">
-                {% if article.image %}
-                <img src="{{ article.image }}" alt="{{ article.title }}" class="w-full h-48 object-cover"
-                    onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" loading="lazy">
-                <div
-                    class="w-full h-48 bg-gradient-to-br from-purple-500 to-pink-600 items-center justify-center hidden">
-                    <i class="fas fa-newspaper text-white text-4xl"></i>
-                </div>
-                {% else %}
-                <div class="w-full h-48 bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center">
-                    <i class="fas fa-newspaper text-white text-4xl"></i>
-                </div>
-                {% endif %}
-                <div class="p-5">
-                    <div class="flex items-center justify-between mb-3">
-                        <span
-                            class="text-xs font-medium text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-900/30 px-2 py-1 rounded-full truncate max-w-[150px]">
-                            {{ article.source }}
-                        </span>
-                        <div class="flex items-center space-x-2">
-                            {% if article.reason %}
-                            <span
-                                class="score-badge bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 rounded-full">
-                                {{ article.reason }}
-                            </span>
-                            {% endif %}
-                        </div>
-                    </div>
-                    <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-2 line-clamp-2">
-                        {{ article.title }}
-                    </h3>
-                    <p class="text-gray-600 dark:text-gray-400 text-sm mb-4 line-clamp-3">
-                        {{ article.description|truncatewords:20 }}
-                    </p>
-                    <div class="flex items-center justify-between">
-                        {% if article.published_at %}
-                        <span class="text-xs text-gray-500 dark:text-gray-400">
-                            <i class="far fa-clock mr-1"></i>{{ article.published_at|slice:":10" }}
-                        </span>
-                        {% endif %}
-                        <a href="{{ article.url }}" target="_blank" rel="noopener noreferrer"
-                            class="text-purple-600 hover:text-purple-700 text-sm font-medium">
-                            Read More <i class="fas fa-external-link-alt ml-1"></i>
-                        </a>
-                    </div>
-                </div>
-            </article>
+            {% include 'news/includes/external_card.html' with article=article %}
             {% empty %}
             <!-- Show skeleton loaders if no articles -->
             {% for i in "123456" %}

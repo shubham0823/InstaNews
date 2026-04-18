@@ -96,9 +96,9 @@
                         <i class="far fa-comment"></i>
                         <span class="text-sm font-medium">{{ news.comments.count }}</span>
                     </a>
-                    <div class="flex items-center gap-1.5 hover:text-green-500 cursor-pointer transition-colors">
-                        <i class="fas fa-share"></i>
-                        <span class="text-sm font-medium">{{ news.shares.count }}</span>
+                    <div class="flex items-center gap-1.5 hover:text-green-500 cursor-pointer transition-colors share-btn" data-news-id="{{ news.pk }}" title="Reshare">
+                        <i class="fas fa-retweet"></i>
+                        <span class="text-sm font-medium shares-count">{{ news.shares.count }}</span>
                     </div>
                     <div class="flex items-center gap-1.5 ml-auto opacity-70">
                         <i class="far fa-eye"></i>

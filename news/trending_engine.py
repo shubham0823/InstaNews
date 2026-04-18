@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 # =============================================================================
 
 # Time window for trending calculation
-TRENDING_WINDOW_HOURS = 24
+TRENDING_WINDOW_HOURS = 240  # Expanded (10 days) to allow older reshared posts to surface
 
 # Minimum age in hours to prevent division by near-zero
 MIN_AGE_HOURS = 0.5
@@ -63,6 +63,7 @@ def _calculate_velocity(news_obj, now=None):
     views_count = news_obj.views or 0
 
     weighted_engagement = (
+        1.0 +  # Base score to ensure fresh posts have non-zero velocity
         likes_count * ENGAGEMENT_WEIGHTS['likes'] +
         comments_count * ENGAGEMENT_WEIGHTS['comments'] +
         shares_count * ENGAGEMENT_WEIGHTS['shares'] +
@@ -76,14 +77,7 @@ def _calculate_velocity(news_obj, now=None):
 def get_trending_posts(geo_category, limit=10):
     """
     Get the top trending user-uploaded posts for a geo_category.
-    Uses velocity scoring on posts from the last 24 hours.
-
-    Args:
-        geo_category: 'india' or 'global'
-        limit: max number of posts to return
-
-    Returns:
-        list of dicts: [{news_obj, velocity_score}, ...]
+    Uses velocity scoring.
     """
     from .models import News
 
@@ -97,9 +91,9 @@ def get_trending_posts(geo_category, limit=10):
         .select_related('author', 'author__profile')
         .prefetch_related('images', 'likes', 'comments', 'shares', 'hashtags')
         .annotate(
-            likes_count=Count('likes'),
-            comments_count=Count('comments'),
-            shares_count=Count('shares'),
+            likes_count=Count('likes', distinct=True),
+            comments_count=Count('comments', distinct=True),
+            shares_count=Count('shares', distinct=True),
         )
     )
 
@@ -121,15 +115,6 @@ def get_trending_posts(geo_category, limit=10):
 def get_trending_hashtags(geo_category, limit=5):
     """
     Get the top trending hashtags for a geo_category.
-    For each hashtag, sums the velocity scores of all posts containing it
-    from the last 24 hours.
-
-    Args:
-        geo_category: 'india' or 'global'
-        limit: max number of hashtags to return
-
-    Returns:
-        list of dicts: [{name, score, post_count}, ...]
     """
     from .models import News, Hashtag
 
@@ -142,9 +127,9 @@ def get_trending_hashtags(geo_category, limit=5):
         .filter(geo_category=geo_category, created_at__gte=cutoff)
         .prefetch_related('likes', 'comments', 'shares', 'hashtags')
         .annotate(
-            likes_count=Count('likes'),
-            comments_count=Count('comments'),
-            shares_count=Count('shares'),
+            likes_count=Count('likes', distinct=True),
+            comments_count=Count('comments', distinct=True),
+            shares_count=Count('shares', distinct=True),
         )
     )
 

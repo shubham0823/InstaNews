@@ -12,6 +12,7 @@ urlpatterns = [
     path('news/<int:pk>/like/', views.like_news, name='like_news'),
     path('news/<int:pk>/comment/', views.add_comment, name='add_comment'),
     path('news/<int:pk>/share/', views.share_news, name='share_news'),
+    path('news/<int:pk>/trust-vote/', views.trust_vote, name='trust_vote'),
     path('news/<int:pk>/edit/', views.edit_news, name='edit_news'),
     path('news/<int:pk>/delete/', views.delete_news, name='delete_news'),
     path('search/', views.search_news, name='search_news'),
@@ -44,4 +45,11 @@ urlpatterns = [
     path('api/for-you/', views.api_for_you_feed, name='api_for_you_feed'),
     path('api/track-interaction/', views.api_track_interaction, name='api_track_interaction'),
     path('api/geo-trending/', views.api_geo_trending, name='api_geo_trending'),
+    
+    # External News Social Interactions
+    path('api/external/like/', views.external_like, name='external_like'),
+    path('api/external/reshare/', views.external_reshare, name='external_reshare'),
+    path('api/external/comment/', views.external_comment, name='external_comment'),
+    path('api/external/counts/', views.external_get_counts, name='external_get_counts'),
+    path('news/external/<int:pk>/', views.external_news_detail, name='external_detail'),
 ] 

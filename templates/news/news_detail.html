@@ -10,11 +10,15 @@
         <div class="p-6 border-b border-gray-100 dark:border-gray-800 bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm">
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div class="flex items-center">
-                    <img src="{{ news.author.profile.avatar.url }}" alt="{{ news.author.username }}"
-                         class="h-14 w-14 rounded-full border-2 border-white dark:border-gray-700 shadow-md object-cover">
+                    <a href="{% url 'news:user_profile' news.author.username %}">
+                        <img src="{{ news.author.profile.avatar.url }}" alt="{{ news.author.username }}"
+                             class="h-14 w-14 rounded-full border-2 border-white dark:border-gray-700 shadow-md object-cover hover:opacity-80 transition-opacity">
+                    </a>
                     <div class="ml-4">
                         <div class="flex items-center gap-2">
-                            <h2 class="text-xl font-bold text-gray-900 dark:text-white">{{ news.author.username }}</h2>
+                            <a href="{% url 'news:user_profile' news.author.username %}">
+                                <h2 class="text-xl font-bold text-gray-900 dark:text-white hover:text-blue-600 transition-colors">{{ news.author.username }}</h2>
+                            </a>
                             {% if news.geo_category == 'india' %}
                             <span class="text-xs px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400 font-bold border border-orange-200 dark:border-orange-800">🇮🇳 India</span>
                             {% else %}
@@ -75,8 +79,89 @@
 
             <h1 class="text-3xl md:text-4xl font-extrabold text-gray-900 dark:text-white mb-6 leading-tight">{{ news.title }}</h1>
             
+            <!-- AI Bias Meter -->
+            {% if news.is_ai_analyzed %}
+            <div class="mb-8 bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 border border-gray-100 dark:border-gray-700/50 relative group">
+                <div class="flex justify-between items-center mb-2">
+                    <span class="text-sm font-bold text-gray-700 dark:text-gray-300 flex items-center">
+                        <svg class="w-4 h-4 mr-1.5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                        AI Tone Analysis
+                    </span>
+                    <div class="flex space-x-4 text-xs font-bold w-1/2 justify-end">
+                        <span class="text-green-600 dark:text-green-400">{{ news.ai_factual_tone }}% Factual</span>
+                        <span class="text-orange-500 dark:text-orange-400">{{ news.ai_emotional_tone }}% Emotional</span>
+                    </div>
+                </div>
+                <!-- Progress Bar -->
+                <div class="w-full h-2 bg-orange-200 dark:bg-orange-900/30 rounded-full overflow-hidden flex">
+                    <div class="h-full bg-green-500 transition-all duration-1000 ease-out" style="width: {{ news.ai_factual_tone }}%"></div>
+                    <div class="h-full bg-orange-500 transition-all duration-1000 ease-out" style="width: {{ news.ai_emotional_tone }}%"></div>
+                </div>
+                
+                <!-- Tooltip -->
+                <div class="absolute z-10 w-64 p-3 mt-2 text-xs text-center text-white bg-gray-900 rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-200 bottom-full left-4 shadow-xl border border-gray-700">
+                    This AI only measures emotional language and sensationalism, not factual accuracy.
+                    <div class="absolute top-full text-gray-900 left-8 transform -translate-x-1/2 -mt-1 border-4 border-transparent border-t-gray-900"></div>
+                </div>
+            </div>
+            {% endif %}
             <div class="prose prose-lg dark:prose-invert max-w-none mb-8 text-gray-700 dark:text-gray-300 leading-relaxed">
                 {{ news.content|linebreaks }}
+            </div>
+
+            <!-- Enhanced Trust Component -->
+            <div id="trust-component" class="mt-8 border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden shadow-sm bg-gray-50/50 dark:bg-gray-800/20">
+                <div class="p-6">
+                    <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-2 flex items-center">
+                        <i class="fas fa-shield-alt text-blue-500 mr-2"></i> Community Trust
+                    </h3>
+                    <p class="text-sm text-gray-600 dark:text-gray-400 mb-6">Help keep the community informed. Is this accurate?</p>
+
+                    <!-- Vote Buttons -->
+                    <div id="trust-action-panel" class="{% if user_trust_vote %}hidden{% endif %}">
+                        <div class="flex flex-col sm:flex-row gap-3">
+                            <button onclick="submitTrustVote('verify')" class="flex-1 bg-green-50 hover:bg-green-100 text-green-700 dark:bg-green-900/30 dark:hover:bg-green-900/50 dark:text-green-400 border border-green-200 dark:border-green-800 font-bold py-3 px-4 rounded-xl transition-all flex items-center justify-center group">
+                                <i class="fas fa-check-circle mr-2 group-hover:scale-110 transition-transform"></i> Verify
+                            </button>
+                            <button onclick="openDisputeModal()" class="flex-1 bg-yellow-50 hover:bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:hover:bg-yellow-900/50 dark:text-yellow-400 border border-yellow-200 dark:border-yellow-800 font-bold py-3 px-4 rounded-xl transition-all flex items-center justify-center group">
+                                <i class="fas fa-exclamation-triangle mr-2 group-hover:scale-110 transition-transform"></i> Dispute
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Revealed Score / Pending Vote -->
+                    <div id="trust-score-reveal" class="{% if not user_trust_vote %}hidden{% endif %} transition-all duration-500 ease-in-out">
+                        {% if hide_trust_score %}
+                            <!-- Herd Immunity State -->
+                            <div class="mt-4 bg-gray-100 dark:bg-gray-800 p-4 rounded-lg flex items-center justify-center border border-gray-200 dark:border-gray-700">
+                                <p class="text-sm font-medium text-gray-600 dark:text-gray-400 text-center">
+                                    <i class="fas fa-lock text-gray-400 mr-1.5"></i>
+                                    Trust score is temporarily hidden to prevent herd voting.<br>It will be revealed shortly.
+                                </p>
+                            </div>
+                        {% else %}
+                            <!-- Revealed State -->
+                            <div class="mt-4">
+                                <div class="flex justify-between items-end mb-2">
+                                    <span class="text-sm font-bold text-gray-700 dark:text-gray-300">
+                                        Consensus Score
+                                    </span>
+                                    <span id="revealed-trust-percentage" class="text-2xl font-black text-blue-600 dark:text-blue-400">
+                                        {{ news.get_trust_score }}%
+                                    </span>
+                                </div>
+                                <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 mb-2 overflow-hidden shadow-inner flex">
+                                    <div id="revealed-trust-bar" class="bg-blue-500 h-3 rounded-full transition-all duration-1000 ease-out" style="width: {{ news.get_trust_score }}%"></div>
+                                </div>
+                                <p class="text-xs text-gray-500 dark:text-gray-400 text-right w-full">of trusted users verified this</p>
+                                
+                                <div id="top-dispute-container" class="mt-4 italic text-sm text-yellow-600 dark:text-yellow-400 font-medium {% if not news.get_top_dispute_reason %}hidden{% endif %}">
+                                    <i class="fas fa-exclamation-circle mr-1"></i> Highly Disputed: <span id="top-dispute-reason">{{ news.get_top_dispute_reason }}</span>
+                                </div>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
             </div>
 
             <!-- Discovery: Tags & Mentions -->
@@ -90,7 +175,7 @@
                     {% endfor %}
                     
                     {% for tagged_user in news.tagged_users.all %}
-                    <a href="{% url 'accounts:user_profile' tagged_user.username %}" class="inline-flex items-center px-3 py-1.5 rounded-lg bg-purple-50 text-purple-600 hover:bg-purple-100 dark:bg-purple-900/20 dark:text-purple-400 dark:hover:bg-purple-900/40 text-sm font-medium transition-colors border border-purple-100 dark:border-purple-800/30">
+                    <a href="{% url 'news:user_profile' tagged_user.username %}" class="inline-flex items-center px-3 py-1.5 rounded-lg bg-purple-50 text-purple-600 hover:bg-purple-100 dark:bg-purple-900/20 dark:text-purple-400 dark:hover:bg-purple-900/40 text-sm font-medium transition-colors border border-purple-100 dark:border-purple-800/30">
                         <i class="fas fa-at text-xs mr-1 opacity-70"></i>{{ tagged_user.username }}
                     </a>
                     {% endfor %}
@@ -115,10 +200,10 @@
                     <span class="select-none">{{ news.comments.count }}</span>
                 </button>
                 
-                <!-- Share Button -->
-                <button id="shareButton" class="group flex items-center gap-2 px-4 py-2 rounded-xl transition-all duration-200 outline-none bg-gray-50 text-gray-600 hover:bg-green-50 hover:text-green-600 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-green-900/20 dark:hover:text-green-400 font-medium border border-gray-100 dark:border-gray-700"
+                <!-- Reshare Button -->
+                <button id="shareButton" title="Reshare" class="group flex items-center gap-2 px-4 py-2 rounded-xl transition-all duration-200 outline-none bg-gray-50 text-gray-600 hover:bg-green-50 hover:text-green-600 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-green-900/20 dark:hover:text-green-400 font-medium border border-gray-100 dark:border-gray-700"
                         data-news-id="{{ news.pk }}">
-                    <i class="fas fa-share text-lg transition-transform group-hover:scale-110 group-hover:-rotate-12"></i>
+                    <i class="fas fa-retweet text-lg transition-transform group-hover:scale-110"></i>
                     <span id="sharesCount" class="select-none">{{ news.shares.count }}</span>
                 </button>
             </div>
@@ -128,6 +213,49 @@
     <!-- Comments Section -->
     <div class="mt-10">
         {% include "news/includes/comments.html" %}
+    </div>
+
+    <!-- Dispute Context Modal -->
+    <div id="disputeModal" class="hidden fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+        <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <!-- Background overlay -->
+            <div class="fixed inset-0 bg-gray-900 bg-opacity-75 backdrop-blur-sm transition-opacity" onclick="closeDisputeModal()"></div>
+
+            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+
+            <div class="relative inline-block align-bottom bg-white dark:bg-gray-800 rounded-2xl text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg w-full border border-gray-100 dark:border-gray-700">
+                <div class="bg-yellow-50 dark:bg-yellow-900/30 px-6 py-4 flex items-center justify-between border-b border-yellow-100 dark:border-yellow-800">
+                    <h3 class="text-lg leading-6 font-bold text-yellow-800 dark:text-yellow-400 flex items-center" id="modal-title">
+                        <i class="fas fa-exclamation-triangle mr-2"></i> Dispute Article
+                    </h3>
+                    <button onclick="closeDisputeModal()" class="text-gray-400 hover:text-gray-500 focus:outline-none">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="p-6">
+                    <p class="text-sm text-gray-500 dark:text-gray-400 mb-6 font-medium">Please select the most accurate reason for disputing this news. This helps prevent manipulation.</p>
+                    
+                    <div class="space-y-3">
+                        <button onclick="submitTrustVote('dispute', 'misleading_title')" class="w-full text-left px-5 py-4 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-yellow-50 dark:hover:bg-gray-700 hover:border-yellow-500 transition-colors group">
+                            <span class="font-bold text-gray-900 dark:text-white block group-hover:text-yellow-600 dark:group-hover:text-yellow-400">Misleading Title</span>
+                            <span class="text-xs text-gray-500 dark:text-gray-400 mt-1 block">The headline does not match the actual content.</span>
+                        </button>
+                        <button onclick="submitTrustVote('dispute', 'altered_image')" class="w-full text-left px-5 py-4 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-yellow-50 dark:hover:bg-gray-700 hover:border-yellow-500 transition-colors group">
+                            <span class="font-bold text-gray-900 dark:text-white block group-hover:text-yellow-600 dark:group-hover:text-yellow-400">Altered/AI Image</span>
+                            <span class="text-xs text-gray-500 dark:text-gray-400 mt-1 block">Visuals appear to be deepfakes, photoshopped, or misleading.</span>
+                        </button>
+                        <button onclick="submitTrustVote('dispute', 'outdated_news')" class="w-full text-left px-5 py-4 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-yellow-50 dark:hover:bg-gray-700 hover:border-yellow-500 transition-colors group">
+                            <span class="font-bold text-gray-900 dark:text-white block group-hover:text-yellow-600 dark:group-hover:text-yellow-400">Outdated News</span>
+                            <span class="text-xs text-gray-500 dark:text-gray-400 mt-1 block">This is an old event being presented as breaking news.</span>
+                        </button>
+                        <button onclick="submitTrustVote('dispute', 'missing_context')" class="w-full text-left px-5 py-4 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-yellow-50 dark:hover:bg-gray-700 hover:border-yellow-500 transition-colors group">
+                            <span class="font-bold text-gray-900 dark:text-white block group-hover:text-yellow-600 dark:group-hover:text-yellow-400">Missing Context</span>
+                            <span class="text-xs text-gray-500 dark:text-gray-400 mt-1 block">Cherry-picked facts that deliberately omit crucial context.</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 {% endblock %}

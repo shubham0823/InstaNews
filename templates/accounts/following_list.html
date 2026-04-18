@@ -24,7 +24,7 @@
                              src="{{ followed.user.profile.avatar.url }}"
                              alt="{{ followed.user.username }}">
                         <div class="ml-4 truncate">
-                            <a href="{% url 'accounts:user_profile' followed.user.username %}"
+                            <a href="{% url 'news:user_profile' followed.user.username %}"
                                class="text-sm font-medium text-gray-900 hover:text-blue-600">
                                 {{ followed.user.username }}
                             </a>

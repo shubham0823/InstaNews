@@ -65,14 +65,14 @@ def fetch_from_newsapi(query, page_size=12, page=1):
                 articles = []
                 for article in data.get('articles', []):
                     articles.append({
-                        'title': article.get('title', 'No Title'),
-                        'description': article.get('description', ''),
-                        'content': article.get('content', ''),
-                        'url': article.get('url', '#'),
-                        'image': article.get('urlToImage', ''),
-                        'source': article.get('source', {}).get('name', 'Unknown'),
-                        'author': article.get('author', 'Unknown'),
-                        'published_at': article.get('publishedAt', ''),
+                        'title': article.get('title') or 'No Title',
+                        'description': article.get('description') or '',
+                        'content': article.get('content') or '',
+                        'url': article.get('url') or '#',
+                        'image': article.get('urlToImage') or '',
+                        'source': (article.get('source') or {}).get('name') or 'Unknown',
+                        'author': article.get('author') or 'Unknown',
+                        'published_at': article.get('publishedAt') or '',
                     })
                 return {
                     'success': True,
@@ -239,12 +239,12 @@ def fetch_trending_news(category='general', country='in', page_size=10):
                 articles = []
                 for article in data.get('articles', []):
                     articles.append({
-                        'title': article.get('title', 'No Title'),
-                        'description': article.get('description', ''),
-                        'url': article.get('url', '#'),
-                        'image': article.get('urlToImage', ''),
-                        'source': article.get('source', {}).get('name', 'Unknown'),
-                        'published_at': article.get('publishedAt', ''),
+                        'title': article.get('title') or 'No Title',
+                        'description': article.get('description') or '',
+                        'url': article.get('url') or '#',
+                        'image': article.get('urlToImage') or '',
+                        'source': (article.get('source') or {}).get('name') or 'Unknown',
+                        'published_at': article.get('publishedAt') or '',
                     })
                 
                 result = {

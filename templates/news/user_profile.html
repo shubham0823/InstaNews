@@ -42,9 +42,35 @@
             </div>
             
             <!-- User Details -->
+            <!-- User Details -->
             <div class="mb-4">
-                <h1 class="text-3xl font-extrabold text-gray-900 dark:text-white">{{ profile_user.username }}</h1>
-                <p class="text-gray-500 dark:text-gray-400 font-medium">Joined {{ profile_user.date_joined|date:"F Y" }}</p>
+                <div class="flex items-center gap-4">
+                    <h1 class="text-3xl font-extrabold text-gray-900 dark:text-white">{{ profile_user.username }}</h1>
+                    
+                    <!-- Trust Score Badge -->
+                    {% if profile_user.profile.trust_weight >= 1.5 %}
+                        <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-bold bg-green-100 text-green-700 border border-green-200 shadow-sm" title="Highly Trusted Contributor">
+                            <i class="fas fa-shield-alt mr-1.5"></i> Trusted ({{ profile_user.profile.trust_weight|floatformat:1 }}x)
+                        </span>
+                    {% elif profile_user.profile.trust_weight < 0.8 %}
+                        <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-bold bg-red-100 text-red-700 border border-red-200 shadow-sm" title="Low Trust Weight">
+                            <i class="fas fa-exclamation-triangle mr-1.5"></i> Warning
+                        </span>
+                    {% else %}
+                        <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-bold bg-blue-50 text-blue-600 border border-blue-100 shadow-sm">
+                            <i class="fas fa-user mr-1.5"></i> Standard Tier ({{ profile_user.profile.trust_weight|floatformat:1 }}x)
+                        </span>
+                    {% endif %}
+                </div>
+                
+                <p class="text-gray-500 dark:text-gray-400 font-medium mt-1">Joined {{ profile_user.date_joined|date:"F Y" }}</p>
+                
+                {% if profile_user.profile.is_echo_chamber_penalized %}
+                <div class="mt-2 text-xs font-bold text-orange-600 bg-orange-50 px-2 py-1 rounded inline-flex items-center border border-orange-200">
+                    <i class="fas fa-adjust mr-1.5"></i> Trust Weight reduced due to lack of Echo Chamber diversity.
+                </div>
+                {% endif %}
+
                 {% if profile_user.profile.bio %}
                 <p class="mt-4 text-gray-700 dark:text-gray-300 max-w-2xl leading-relaxed">{{ profile_user.profile.bio }}</p>
                 {% endif %}
@@ -56,6 +82,11 @@
                     <div class="text-2xl font-bold text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">{{ news_items.paginator.count|default:0 }}</div>
                     <div class="text-sm font-medium uppercase tracking-wider transition-colors text-blue-600 dark:text-blue-400" id="tab-label-posts">Posts</div>
                     <div class="absolute bottom-0 left-0 w-full h-1 bg-blue-600 dark:bg-blue-400 rounded-t-lg transition-transform" id="tab-indicator-posts"></div>
+                </button>
+                <button onclick="switchTab('reshared')" id="tab-btn-reshared" class="text-left group outline-none relative pb-4">
+                    <div class="text-2xl font-bold text-gray-900 dark:text-white group-hover:text-green-600 dark:group-hover:text-green-400 transition-colors">{{ reshared_news.count|default:0 }}</div>
+                    <div class="text-sm font-medium uppercase tracking-wider transition-colors text-gray-500 group-hover:text-green-600 dark:group-hover:text-green-400" id="tab-label-reshared"><i class="fas fa-retweet mr-1"></i>Reshared</div>
+                    <div class="absolute bottom-0 left-0 w-full h-1 bg-transparent rounded-t-lg transition-all duration-300" id="tab-indicator-reshared"></div>
                 </button>
                 <button onclick="switchTab('followers')" id="tab-btn-followers" class="text-left group outline-none relative pb-4">
                     <div class="text-2xl font-bold text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors" id="followerCount">{{ followers_count }}</div>
@@ -144,6 +175,102 @@
             </div>
         </div>
 
+        <!-- Reshared Tab -->
+        <div id="tab-reshared" class="tab-content absolute top-0 left-0 w-full hidden transition-opacity duration-300 opacity-0 min-h-full">
+            <h2 class="text-2xl font-bold mb-6 text-gray-900 dark:text-white flex items-center"><i class="fas fa-retweet text-green-500 mr-3"></i>Reshared Posts</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {% for news in reshared_news %}
+                <div class="bg-white dark:bg-dark-card rounded-2xl shadow-md overflow-hidden border-t-4 border-green-500 relative transform hover:-translate-y-1 transition-all duration-300 hover:shadow-xl">
+                    <!-- Reshared Badge -->
+                    <div class="absolute top-2 right-2 bg-green-500 text-white text-xs font-bold px-2.5 py-1 rounded-lg z-10 shadow-sm">
+                        <i class="fas fa-retweet mr-1"></i> Reshared
+                    </div>
+                    
+                    {% if news.images.first %}
+                    <div class="relative w-full aspect-video overflow-hidden">
+                        <img src="{{ news.images.first.image.url }}" alt="{{ news.title }}"
+                            class="absolute inset-0 w-full h-full object-cover hover:scale-105 transition-transform duration-500">
+                    </div>
+                    {% elif news.video %}
+                    <div class="relative w-full aspect-video bg-black overflow-hidden">
+                        <video class="absolute inset-0 w-full h-full object-cover" controls preload="metadata">
+                            <source src="{{ news.video.url }}" type="video/mp4">
+                        </video>
+                    </div>
+                    {% endif %}
+                    <div class="p-5">
+                        <h3 class="text-lg font-extrabold text-gray-900 dark:text-white mb-2 leading-tight">
+                            <a href="{% url 'news:news_detail' news.pk %}" class="hover:text-blue-600 transition-colors">{{ news.title }}</a>
+                        </h3>
+                        <p class="text-gray-600 dark:text-gray-300 text-sm mb-4 line-clamp-3">{{ news.content|truncatewords:25 }}</p>
+                        
+                        <div class="flex items-center justify-between pt-4 border-t border-gray-100 dark:border-gray-800">
+                            <a href="{% url 'news:user_profile' news.author.username %}" class="flex items-center group">
+                                <img src="{{ news.author.profile.avatar.url }}" alt="{{ news.author.username }}"
+                                     class="w-7 h-7 rounded-full object-cover ring-2 ring-transparent group-hover:ring-blue-400 transition-all">
+                                <span class="ml-2 text-xs font-bold text-gray-700 dark:text-gray-300 group-hover:text-blue-600 transition-colors">@{{ news.author.username }}</span>
+                            </a>
+                            <div class="flex items-center space-x-3 text-xs text-gray-500 dark:text-gray-400">
+                                <span class="flex items-center"><i class="fas fa-heart mr-1"></i>{{ news.likes.count }}</span>
+                                <span class="flex items-center"><i class="fas fa-comment mr-1"></i>{{ news.comments.count }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="col-span-full text-center py-12 bg-white dark:bg-dark-card rounded-2xl shadow-sm border border-dashed border-gray-200 dark:border-gray-700">
+                    <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-50 dark:bg-green-900/20 mb-4">
+                        <i class="fas fa-retweet text-2xl text-green-400"></i>
+                    </div>
+                    <h3 class="mt-2 text-sm font-medium text-gray-900 dark:text-white">No reshared posts</h3>
+                    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ profile_user.username }} hasn't reshared any news yet.</p>
+                </div>
+                {% endfor %}
+            </div>
+
+            <!-- External Reshared News -->
+            {% if reshared_external %}
+            <h3 class="text-lg font-bold mt-8 mb-4 text-gray-900 dark:text-white flex items-center">
+                <i class="fas fa-rss text-purple-500 mr-2"></i>Reshared External Articles
+            </h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {% for ext in reshared_external %}
+                <div class="bg-white dark:bg-dark-card rounded-2xl shadow-md overflow-hidden border-t-4 border-purple-500 relative transform hover:-translate-y-1 transition-all duration-300 hover:shadow-xl">
+                    <div class="absolute top-2 right-2 bg-purple-500 text-white text-xs font-bold px-2.5 py-1 rounded-lg z-10 shadow-sm">
+                        <i class="fas fa-retweet mr-1"></i> Reshared
+                    </div>
+                    {% if ext.image %}
+                    <div class="relative w-full aspect-video overflow-hidden">
+                        <img src="{{ ext.image }}" alt="{{ ext.title }}"
+                             class="absolute inset-0 w-full h-full object-cover hover:scale-105 transition-transform duration-500"
+                             onerror="this.parentElement.style.display='none';">
+                    </div>
+                    {% endif %}
+                    <div class="p-5">
+                        <span class="text-xs font-medium text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-900/30 px-2 py-1 rounded-full">
+                            <i class="fas fa-rss mr-1"></i>{{ ext.source }}
+                        </span>
+                        <h3 class="text-lg font-extrabold text-gray-900 dark:text-white mb-2 mt-2 leading-tight">
+                            <a href="{% url 'news:external_detail' ext.pk %}" class="hover:text-blue-600 transition-colors">{{ ext.title }}</a>
+                        </h3>
+                        <p class="text-gray-600 dark:text-gray-300 text-sm mb-3 line-clamp-2">{{ ext.description|truncatewords:20 }}</p>
+                        <div class="flex items-center justify-between pt-3 border-t border-gray-100 dark:border-gray-800">
+                            <div class="flex items-center space-x-3 text-xs text-gray-500 dark:text-gray-400">
+                                <span class="flex items-center"><i class="fas fa-heart mr-1"></i>{{ ext.likes.count }}</span>
+                                <span class="flex items-center"><i class="fas fa-comment mr-1"></i>{{ ext.comments.count }}</span>
+                                <span class="flex items-center"><i class="fas fa-retweet mr-1"></i>{{ ext.shares.count }}</span>
+                            </div>
+                            <a href="{{ ext.url }}" target="_blank" rel="noopener noreferrer" class="text-xs text-purple-600 hover:text-purple-700">
+                                <i class="fas fa-external-link-alt"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+
         <!-- Following Tab -->
         <div id="tab-following" class="tab-content absolute top-0 left-0 w-full hidden transition-opacity duration-300 opacity-0 min-h-full">
             <h2 class="text-2xl font-bold mb-6 text-gray-900 dark:text-white flex items-center"><i class="fas fa-user-check text-purple-500 mr-3"></i>Following</h2>
@@ -170,7 +297,7 @@
 <script>
 // Tab Switching Logic
 function switchTab(tabId) {
-    const tabs = ['posts', 'followers', 'following'];
+    const tabs = ['posts', 'reshared', 'followers', 'following'];
     
     tabs.forEach(t => {
         const contentEl = document.getElementById(`tab-${t}`);
@@ -215,7 +342,7 @@ function switchTab(tabId) {
 document.addEventListener('DOMContentLoaded', function() {
     // Check hash for direct tab linking
     const hash = window.location.hash.replace('#', '');
-    if (['posts', 'followers', 'following'].includes(hash)) {
+    if (['posts', 'reshared', 'followers', 'following'].includes(hash)) {
         switchTab(hash);
     }
 

@@ -1,0 +1,282 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ article.title }} - InstaNews{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- Article Card -->
+    <article class="bg-white dark:bg-dark-card rounded-2xl shadow-lg overflow-hidden border border-gray-100 dark:border-gray-800">
+        <!-- Source Badge -->
+        <div class="px-6 pt-5 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <span class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400 ring-1 ring-inset ring-purple-500/20">
+                    <i class="fas fa-rss mr-1.5"></i>{{ article.source }}
+                </span>
+                {% if article.published_at %}
+                <span class="text-xs text-gray-500 dark:text-gray-400">
+                    <i class="far fa-clock mr-1"></i>{{ article.published_at|slice:":10" }}
+                </span>
+                {% endif %}
+            </div>
+            <a href="{{ article.url }}" target="_blank" rel="noopener noreferrer"
+               class="inline-flex items-center px-4 py-2 text-sm font-medium text-blue-600 hover:text-blue-700 bg-blue-50 dark:bg-blue-900/20 dark:text-blue-400 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-colors">
+                <i class="fas fa-external-link-alt mr-2"></i>Full Article
+            </a>
+        </div>
+
+        <!-- Image -->
+        {% if article.image %}
+        <div class="mt-4 mx-6 rounded-xl overflow-hidden">
+            <img src="{{ article.image }}" alt="{{ article.title }}"
+                 class="w-full h-auto max-h-96 object-cover"
+                 onerror="this.parentElement.style.display='none';">
+        </div>
+        {% endif %}
+
+        <!-- Title & Description -->
+        <div class="p-6">
+            <h1 class="text-2xl md:text-3xl font-extrabold text-gray-900 dark:text-white leading-tight mb-4">
+                {{ article.title }}
+            </h1>
+            {% if article.description %}
+            <p class="text-gray-600 dark:text-gray-300 text-base leading-relaxed mb-6">
+                {{ article.description }}
+            </p>
+            {% endif %}
+
+            <!-- Social Interaction Buttons -->
+            <div class="flex items-center gap-4 pt-4 border-t border-gray-100 dark:border-gray-800">
+                <!-- Like Button -->
+                <button id="extLikeBtn" 
+                        class="group flex items-center gap-2 px-4 py-2 rounded-xl transition-all duration-200 outline-none font-medium border
+                        {% if user_has_liked %}bg-red-50 text-red-500 border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800{% else %}bg-gray-50 text-gray-600 hover:bg-red-50 hover:text-red-500 border-gray-100 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-red-900/20 dark:hover:text-red-400 dark:border-gray-700{% endif %}"
+                        data-article-url="{{ article.url }}" data-article-title="{{ article.title }}"
+                        data-article-image="{{ article.image }}" data-article-source="{{ article.source }}"
+                        data-article-description="{{ article.description }}" data-article-published="{{ article.published_at }}">
+                    <i class="{% if user_has_liked %}fas{% else %}far{% endif %} fa-heart text-lg transition-transform group-hover:scale-110"></i>
+                    <span id="extLikesCount" class="select-none">{{ article.likes.count }}</span>
+                </button>
+
+                <!-- Comment Count -->
+                <a href="#comments"
+                   class="group flex items-center gap-2 px-4 py-2 rounded-xl transition-all duration-200 outline-none bg-gray-50 text-gray-600 hover:bg-blue-50 hover:text-blue-600 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-blue-900/20 dark:hover:text-blue-400 font-medium border border-gray-100 dark:border-gray-700">
+                    <i class="far fa-comment text-lg transition-transform group-hover:scale-110"></i>
+                    <span id="extCommentsCount" class="select-none">{{ comments.count }}</span>
+                </a>
+
+                <!-- Reshare Button -->
+                <button id="extShareBtn"
+                        class="group flex items-center gap-2 px-4 py-2 rounded-xl transition-all duration-200 outline-none font-medium border
+                        {% if user_has_shared %}bg-green-50 text-green-500 border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800{% else %}bg-gray-50 text-gray-600 hover:bg-green-50 hover:text-green-600 border-gray-100 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-green-900/20 dark:hover:text-green-400 dark:border-gray-700{% endif %}"
+                        data-article-url="{{ article.url }}" data-article-title="{{ article.title }}"
+                        data-article-image="{{ article.image }}" data-article-source="{{ article.source }}"
+                        data-article-description="{{ article.description }}" data-article-published="{{ article.published_at }}">
+                    <i class="fas fa-retweet text-lg transition-transform group-hover:scale-110"></i>
+                    <span id="extSharesCount" class="select-none">{{ article.shares.count }}</span>
+                </button>
+            </div>
+        </div>
+    </article>
+
+    <!-- Comments Section -->
+    <div id="comments" class="mt-8">
+        <h2 class="text-xl font-bold text-gray-900 dark:text-white mb-6 flex items-center">
+            <i class="fas fa-comments text-blue-500 mr-3"></i>
+            Comments
+            <span class="ml-2 text-sm font-normal text-gray-500 dark:text-gray-400">({{ comments.count }})</span>
+        </h2>
+
+        <!-- Comment Form -->
+        <div class="bg-white dark:bg-dark-card rounded-2xl shadow-sm p-5 mb-6 border border-gray-100 dark:border-gray-800">
+            <div class="flex items-start space-x-4">
+                <img src="{{ request.user.profile.avatar.url }}" alt="{{ request.user.username }}"
+                     class="w-10 h-10 rounded-full object-cover ring-2 ring-gray-100 dark:ring-gray-700 flex-shrink-0">
+                <div class="flex-1">
+                    <textarea id="extCommentInput" rows="3" placeholder="Write a comment..."
+                              class="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all resize-none text-sm"></textarea>
+                    <div class="mt-3 flex justify-end">
+                        <button id="extCommentSubmit"
+                                class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-lg transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                                data-article-url="{{ article.url }}" data-article-title="{{ article.title }}"
+                                data-article-image="{{ article.image }}" data-article-source="{{ article.source }}"
+                                data-article-description="{{ article.description }}" data-article-published="{{ article.published_at }}">
+                            <i class="fas fa-paper-plane mr-1"></i> Post Comment
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Comments List -->
+        <div id="extCommentsList" class="space-y-4">
+            {% for comment in comments %}
+            <div class="bg-white dark:bg-dark-card rounded-xl shadow-sm p-5 border border-gray-100 dark:border-gray-800">
+                <div class="flex items-start space-x-3">
+                    <a href="{% url 'news:user_profile' comment.author.username %}">
+                        <img src="{{ comment.author.profile.avatar.url }}" alt="{{ comment.author.username }}"
+                             class="w-9 h-9 rounded-full object-cover ring-2 ring-transparent hover:ring-blue-400 transition-all">
+                    </a>
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center space-x-2">
+                            <a href="{% url 'news:user_profile' comment.author.username %}"
+                               class="text-sm font-bold text-gray-900 dark:text-white hover:text-blue-600 transition-colors">
+                                {{ comment.author.username }}
+                            </a>
+                            <span class="text-xs text-gray-400 dark:text-gray-500">{{ comment.created_at|timesince }} ago</span>
+                        </div>
+                        <p class="mt-1.5 text-gray-700 dark:text-gray-300 text-sm leading-relaxed">{{ comment.content }}</p>
+                    </div>
+                </div>
+            </div>
+            {% empty %}
+            <div id="noCommentsMsg" class="text-center py-8 bg-white dark:bg-dark-card rounded-xl border border-dashed border-gray-200 dark:border-gray-700">
+                <i class="far fa-comment-dots text-3xl text-gray-300 dark:text-gray-600 mb-2"></i>
+                <p class="text-gray-500 dark:text-gray-400 text-sm">No comments yet. Be the first to comment!</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    function getCsrfToken() {
+        const name = 'csrftoken';
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let cookie of cookies) {
+                cookie = cookie.trim();
+                if (cookie.startsWith(name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    function getArticleData(btn) {
+        return {
+            url: btn.dataset.articleUrl,
+            title: btn.dataset.articleTitle,
+            image: btn.dataset.articleImage || '',
+            source: btn.dataset.articleSource || '',
+            description: btn.dataset.articleDescription || '',
+            published_at: btn.dataset.articlePublished || '',
+        };
+    }
+
+    // Like button
+    const likeBtn = document.getElementById('extLikeBtn');
+    if (likeBtn) {
+        likeBtn.addEventListener('click', function() {
+            fetch('/api/external/like/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCsrfToken()
+                },
+                body: JSON.stringify(getArticleData(this))
+            })
+            .then(r => r.json())
+            .then(data => {
+                document.getElementById('extLikesCount').textContent = data.likes_count;
+                const icon = this.querySelector('i');
+                if (data.liked) {
+                    icon.classList.replace('far', 'fas');
+                    this.classList.add('bg-red-50', 'text-red-500', 'border-red-200');
+                    this.classList.remove('bg-gray-50', 'text-gray-600', 'border-gray-100');
+                } else {
+                    icon.classList.replace('fas', 'far');
+                    this.classList.remove('bg-red-50', 'text-red-500', 'border-red-200');
+                    this.classList.add('bg-gray-50', 'text-gray-600', 'border-gray-100');
+                }
+            });
+        });
+    }
+
+    // Reshare button
+    const shareBtn = document.getElementById('extShareBtn');
+    if (shareBtn) {
+        shareBtn.addEventListener('click', function() {
+            fetch('/api/external/reshare/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCsrfToken()
+                },
+                body: JSON.stringify(getArticleData(this))
+            })
+            .then(r => r.json())
+            .then(data => {
+                document.getElementById('extSharesCount').textContent = data.shares_count;
+                this.classList.add('bg-green-50', 'text-green-500', 'border-green-200');
+                this.classList.remove('bg-gray-50', 'text-gray-600', 'border-gray-100');
+                const icon = this.querySelector('i');
+                icon.style.transition = 'transform 0.3s';
+                icon.style.transform = 'rotate(360deg)';
+                setTimeout(() => icon.style.transform = '', 300);
+            });
+        });
+    }
+
+    // Comment submit
+    const commentSubmit = document.getElementById('extCommentSubmit');
+    const commentInput = document.getElementById('extCommentInput');
+    if (commentSubmit && commentInput) {
+        commentSubmit.addEventListener('click', function() {
+            const content = commentInput.value.trim();
+            if (!content) return;
+            
+            this.disabled = true;
+            const payload = getArticleData(this);
+            payload.content = content;
+            
+            fetch('/api/external/comment/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCsrfToken()
+                },
+                body: JSON.stringify(payload)
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    commentInput.value = '';
+                    document.getElementById('extCommentsCount').textContent = data.comments_count;
+                    
+                    // Remove "no comments" message
+                    const noMsg = document.getElementById('noCommentsMsg');
+                    if (noMsg) noMsg.remove();
+                    
+                    // Add new comment at top
+                    const list = document.getElementById('extCommentsList');
+                    const html = `
+                        <div class="bg-white dark:bg-dark-card rounded-xl shadow-sm p-5 border border-gray-100 dark:border-gray-800" style="animation: fadeSlideIn 0.3s ease">
+                            <div class="flex items-start space-x-3">
+                                <img src="${data.comment.avatar}" class="w-9 h-9 rounded-full object-cover ring-2 ring-blue-400">
+                                <div class="flex-1 min-w-0">
+                                    <div class="flex items-center space-x-2">
+                                        <span class="text-sm font-bold text-gray-900 dark:text-white">${data.comment.author}</span>
+                                        <span class="text-xs text-gray-400">just now</span>
+                                    </div>
+                                    <p class="mt-1.5 text-gray-700 dark:text-gray-300 text-sm">${data.comment.content}</p>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    list.insertAdjacentHTML('afterbegin', html);
+                }
+            })
+            .finally(() => {
+                this.disabled = false;
+            });
+        });
+    }
+});
+</script>
+{% endblock %}

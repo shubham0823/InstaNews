@@ -180,53 +180,7 @@
         </div>
         <div id="external-news-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {% for article in external_news %}
-            <article
-                class="news-card bg-white dark:bg-dark-card rounded-2xl shadow-md overflow-hidden transition-all duration-300 hover:shadow-xl"
-                data-url="{{ article.url }}" data-source="{{ article.source }}">
-                {% if article.image %}
-                <img src="{{ article.image }}" alt="{{ article.title }}" class="w-full h-44 object-cover"
-                    onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" loading="lazy">
-                <div
-                    class="w-full h-44 bg-gradient-to-br from-purple-500 to-pink-600 items-center justify-center hidden">
-                    <i class="fas fa-newspaper text-white text-3xl"></i>
-                </div>
-                {% else %}
-                <div class="w-full h-44 bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center">
-                    <i class="fas fa-newspaper text-white text-3xl"></i>
-                </div>
-                {% endif %}
-                <div class="p-4">
-                    <div class="flex items-center justify-between mb-2">
-                        <span
-                            class="text-xs font-medium text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-900/30 px-2 py-1 rounded-full truncate max-w-[120px]">
-                            {{ article.source }}
-                        </span>
-                        {% if article.reason %}
-                        <span
-                            class="text-xs bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 px-2 py-0.5 rounded-full">
-                            {{ article.reason }}
-                        </span>
-                        {% endif %}
-                    </div>
-                    <h3 class="text-md font-bold text-gray-900 dark:text-white mb-2 line-clamp-2">
-                        {{ article.title }}
-                    </h3>
-                    <p class="text-gray-600 dark:text-gray-400 text-sm mb-3 line-clamp-2">
-                        {{ article.description|truncatewords:15 }}
-                    </p>
-                    <div class="flex items-center justify-between">
-                        {% if article.published_at %}
-                        <span class="text-xs text-gray-500 dark:text-gray-400">
-                            <i class="far fa-clock mr-1"></i>{{ article.published_at|slice:":10" }}
-                        </span>
-                        {% endif %}
-                        <a href="{{ article.url }}" target="_blank" rel="noopener noreferrer"
-                            class="text-purple-600 hover:text-purple-700 text-sm font-medium">
-                            Read <i class="fas fa-external-link-alt ml-1"></i>
-                        </a>
-                    </div>
-                </div>
-            </article>
+            {% include 'news/includes/external_card.html' with article=article %}
             {% endfor %}
         </div>
     </div>
@@ -416,18 +370,9 @@
                 });
         });
 
-        // Share functionality
-        $('.share-btn').click(function () {
-            const newsId = $(this).data('news-id');
-            const btn = $(this);
 
-            $.post(`/news/${newsId}/share/`, {
-                csrfmiddlewaretoken: '{{ csrf_token }}'
-            })
-                .done(function (data) {
-                    btn.find('.shares-count').text(data.shares_count);
-                });
-        });
+        // Reshare is now handled globally via reshare_js.html
+
 
         // Track clicks on external news for personalization
         $('#external-news-grid article').click(function () {

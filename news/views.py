@@ -5,7 +5,7 @@ from django.conf import settings
 from django.contrib import messages
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.auth.models import User
-from .models import News, Comment, Profile, NewsImage, Notification, Share, Hashtag
+from .models import News, Comment, Profile, NewsImage, Notification, Share, Hashtag, ExternalNews, ExternalShare, ExternalComment
 import requests
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.db.models import Q, Count
@@ -308,10 +308,25 @@ def news_detail(request, pk):
     for img in images:
         print(f"Image {img.id}: URL={img.image.url}, Path={img.image.path}")  # Debug log
     
+    # Blind Voting Safeguard (Herd Immunity)
+    user_trust_vote = None
+    hide_trust_score = False
+    
+    if request.user.is_authenticated:
+        from .models import TrustVote
+        user_trust_vote = TrustVote.objects.filter(news=news, user=request.user).first()
+        
+    from django.utils import timezone
+    age_hours = (timezone.now() - news.created_at).total_seconds() / 3600
+    if age_hours < 2.0 and not user_trust_vote:
+        hide_trust_score = True
+    
     context = {
         'news': news,
         'comments': comments,
         'debug': settings.DEBUG,
+        'user_trust_vote': user_trust_vote,
+        'hide_trust_score': hide_trust_score,
     }
     return render(request, 'news/news_detail.html', context)
 
@@ -392,17 +407,18 @@ def add_comment(request, pk):
 @login_required
 def share_news(request, pk):
     news = get_object_or_404(News, pk=pk)
-    share = news.shares.create(user=request.user)
+    share, created = news.shares.get_or_create(user=request.user)
     
-    # Create notification
-    if request.user != news.author:
-        Notification.objects.create(
-            recipient=news.author,
-            notification_type='share',
-            actor=request.user,
-            content_type=ContentType.objects.get_for_model(share),
-            object_id=share.id
-        )
+    if created:
+        # Create notification
+        if request.user != news.author:
+            Notification.objects.create(
+                recipient=news.author,
+                notification_type='share',
+                actor=request.user,
+                content_type=ContentType.objects.get_for_model(share),
+                object_id=share.id
+            )
     
     return JsonResponse({
         'status': 'success',
@@ -558,6 +574,12 @@ def user_profile(request, username):
     followers_list = user_profile.followers.all().select_related('user')
     following_list = user_profile.following.all().select_related('user')
     
+    # Get reshared news
+    reshared_news = News.objects.filter(shares__user=profile_user).order_by('-shares__shared_at')
+    
+    # Get reshared external news
+    reshared_external = ExternalNews.objects.filter(shares__user=profile_user).order_by('-shares__shared_at')
+    
     context = {
         'profile_user': profile_user,
         'user_profile': user_profile,
@@ -567,6 +589,8 @@ def user_profile(request, username):
         'following_count': following_list.count(),
         'followers_list': followers_list,
         'following_list': following_list,
+        'reshared_news': reshared_news,
+        'reshared_external': reshared_external,
     }
     return render(request, 'news/user_profile.html', context)
 
@@ -600,9 +624,12 @@ def edit_news(request, pk):
             media_type = form.cleaned_data.get('media_type')
             
             if news.news_type == 'short':
-                if media_type == 'video' and request.FILES.get('video'):
-                    news.video = request.FILES['video']
+                if media_type == 'video':
+                    news.images.all().delete()  # Ensure images are removed
+                    if request.FILES.get('video'):
+                        news.video = request.FILES['video']
                 elif media_type == 'image':
+                    news.video = None  # Ensure video is removed
                     # Handle single image upload for short format
                     uploaded_images = request.FILES.getlist('images')
                     if uploaded_images:
@@ -635,6 +662,8 @@ def edit_news(request, pk):
             news.save()
             messages.success(request, 'News article updated successfully!')
             return redirect('news:news_detail', pk=news.pk)
+        else:
+            print(f"FORM ERRORS: {form.errors}")
     else:
         form = NewsForm(instance=news)
         # Set initial media type
@@ -1142,4 +1171,218 @@ def api_geo_trending(request):
         'category': category,
         'hashtags': hashtags,
         'posts': posts,
+    })
+
+
+# =====================================================
+# External News Social Interactions
+# =====================================================
+
+def _get_or_create_external(data):
+    """Helper: get or create an ExternalNews record from article metadata."""
+    url = data.get('url', '').strip()
+    if not url:
+        return None
+    ext, created = ExternalNews.objects.get_or_create(
+        url=url,
+        defaults={
+            'title': data.get('title', 'Untitled')[:500],
+            'description': data.get('description', '')[:5000],
+            'image': data.get('image', '')[:2000],
+            'source': data.get('source', '')[:200],
+            'published_at': data.get('published_at', '')[:50],
+        }
+    )
+    return ext
+
+
+@login_required
+def external_like(request):
+    """Like/unlike an external news article."""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST required'}, status=405)
+    
+    data = json.loads(request.body) if request.content_type == 'application/json' else request.POST
+    ext = _get_or_create_external(data)
+    if not ext:
+        return JsonResponse({'error': 'URL required'}, status=400)
+    
+    if request.user in ext.likes.all():
+        ext.likes.remove(request.user)
+        liked = False
+    else:
+        ext.likes.add(request.user)
+        liked = True
+    
+    return JsonResponse({
+        'status': 'success',
+        'liked': liked,
+        'likes_count': ext.likes.count(),
+    })
+
+
+@login_required
+def external_reshare(request):
+    """Reshare an external news article."""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST required'}, status=405)
+    
+    data = json.loads(request.body) if request.content_type == 'application/json' else request.POST
+    ext = _get_or_create_external(data)
+    if not ext:
+        return JsonResponse({'error': 'URL required'}, status=400)
+    
+    share, created = ExternalShare.objects.get_or_create(news=ext, user=request.user)
+    
+    return JsonResponse({
+        'status': 'success',
+        'shares_count': ext.shares.count(),
+        'already_shared': not created,
+    })
+
+
+@login_required
+def external_comment(request):
+    """Add a comment to an external news article."""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST required'}, status=405)
+    
+    data = json.loads(request.body) if request.content_type == 'application/json' else request.POST
+    ext = _get_or_create_external(data)
+    content = data.get('content', '').strip()
+    
+    if not ext:
+        return JsonResponse({'error': 'URL required'}, status=400)
+    if not content:
+        return JsonResponse({'error': 'Comment content required'}, status=400)
+    
+    comment = ExternalComment.objects.create(
+        news=ext,
+        author=request.user,
+        content=content
+    )
+    
+    return JsonResponse({
+        'status': 'success',
+        'comments_count': ext.comments.count(),
+        'comment': {
+            'id': comment.id,
+            'author': comment.author.username,
+            'avatar': comment.author.profile.avatar.url,
+            'content': comment.content,
+            'created_at': comment.created_at.strftime('%B %d, %Y %I:%M %p'),
+        }
+    })
+
+
+@login_required
+def external_news_detail(request, pk):
+    """Detail page for an external news article with social interactions."""
+    ext = get_object_or_404(ExternalNews, pk=pk)
+    comments = ext.comments.select_related('author', 'author__profile').all()
+    user_has_liked = request.user in ext.likes.all()
+    user_has_shared = ext.shares.filter(user=request.user).exists()
+    
+    context = {
+        'article': ext,
+        'comments': comments,
+        'user_has_liked': user_has_liked,
+        'user_has_shared': user_has_shared,
+    }
+    return render(request, 'news/external_detail.html', context)
+
+
+@login_required
+def external_get_counts(request):
+    """Get like/share/comment counts for an external article by URL (used by cards)."""
+    url = request.GET.get('url', '').strip()
+    if not url:
+        return JsonResponse({'likes': 0, 'shares': 0, 'comments': 0, 'liked': False, 'shared': False})
+    
+    try:
+        ext = ExternalNews.objects.get(url=url)
+        return JsonResponse({
+            'likes': ext.likes.count(),
+            'shares': ext.shares.count(),
+            'comments': ext.comments.count(),
+            'liked': request.user in ext.likes.all(),
+            'shared': ext.shares.filter(user=request.user).exists(),
+            'pk': ext.pk,
+        })
+    except ExternalNews.DoesNotExist:
+        return JsonResponse({'likes': 0, 'shares': 0, 'comments': 0, 'liked': False, 'shared': False})
+
+
+@login_required
+def trust_vote(request, pk):
+    """
+    Handles Trust Votes (Verify/Dispute) with Anti-Brigading and Echo Chamber safeguards.
+    """
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Invalid method'}, status=405)
+        
+    news = get_object_or_404(News, pk=pk)
+    
+    # 1. Anti-Brigading Preventative Check
+    if news.is_frozen_by_brigading:
+        return JsonResponse({'error': 'Voting temporarily suspended due to suspicious activity.'}, status=403)
+        
+    from datetime import timedelta
+    from django.utils import timezone
+    from .models import TrustVote
+    
+    now = timezone.now()
+    age_hours = (now - news.created_at).total_seconds() / 3600
+    
+    # If article is < 1 hr old, verify velocity over last 10 mins
+    if age_hours < 1.0:
+        ten_mins_ago = now - timedelta(minutes=10)
+        recent_votes = TrustVote.objects.filter(news=news, created_at__gte=ten_mins_ago).count()
+        if recent_votes > 50:
+            news.is_frozen_by_brigading = True
+            news.save(update_fields=['is_frozen_by_brigading'])
+            return JsonResponse({'error': 'Voting temporarily suspended due to high velocity.'}, status=403)
+
+    # 2. Get vote data
+    import json
+    try:
+        data = json.loads(request.body)
+        vote_type = data.get('vote_type')
+        dispute_reason = data.get('dispute_reason', 'none')
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+        
+    if vote_type not in ['verify', 'dispute']:
+        return JsonResponse({'error': 'Invalid vote type'}, status=400)
+
+    # 3. Create or update vote
+    vote, created = TrustVote.objects.update_or_create(
+        user=request.user,
+        news=news,
+        defaults={'vote_type': vote_type, 'dispute_reason': dispute_reason}
+    )
+
+    # 4. Echo Chamber Diversity Tracker
+    profile = request.user.profile
+    diversity = profile.voting_diversity or {}
+    geo = news.geo_category
+    diversity[geo] = diversity.get(geo, 0) + 1
+    
+    total_votes = sum(diversity.values())
+    if total_votes > 10:
+        max_ratio = max(diversity.values()) / total_votes
+        if max_ratio > 0.90:
+            profile.is_echo_chamber_penalized = True
+            profile.trust_weight = max(0.5, profile.trust_weight * 0.8)  # Penalty
+        else:
+            profile.is_echo_chamber_penalized = False
+            
+    profile.voting_diversity = diversity
+    profile.save(update_fields=['voting_diversity', 'is_echo_chamber_penalized', 'trust_weight'])
+    
+    # Return the "Reveal" stats
+    return JsonResponse({
+        'status': 'success',
+        'trust_score': news.get_trust_score(),
+        'top_dispute': news.get_top_dispute_reason()
     })

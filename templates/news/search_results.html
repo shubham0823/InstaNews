@@ -25,10 +25,10 @@
             <div>
                 <select name="type"
                     class="px-4 py-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    <option value="all" {% if search_type=='all' %}selected{% endif %}>🔍 All</option>
-                    <option value="news" {% if search_type=='news' %}selected{% endif %}>📰 News</option>
-                    <option value="users" {% if search_type=='users' %}selected{% endif %}>👤 Users</option>
-                    <option value="hashtags" {% if search_type=='hashtags' %}selected{% endif %}># Hashtags</option>
+                    <option value="all" {% if search_type == 'all' %}selected{% endif %}>🔍 All</option>
+                    <option value="news" {% if search_type == 'news' %}selected{% endif %}>📰 News</option>
+                    <option value="users" {% if search_type == 'users' %}selected{% endif %}>👤 Users</option>
+                    <option value="hashtags" {% if search_type == 'hashtags' %}selected{% endif %}># Hashtags</option>
                 </select>
             </div>
             <button type="submit"
@@ -134,6 +134,10 @@
                             <span class="flex items-center text-sm">
                                 <i class="fas fa-comment mr-1"></i> {{ news.comments.count }}
                             </span>
+                            <div class="flex items-center text-sm cursor-pointer hover:text-green-500 transition-colors share-btn" data-news-id="{{ news.pk }}" title="Reshare">
+                                <i class="fas fa-retweet mr-1"></i>
+                                <span class="shares-count">{{ news.shares.count }}</span>
+                            </div>
                         </div>
                         <a href="{% url 'news:news_detail' news.pk %}"
                             class="text-blue-600 hover:text-blue-800 text-sm font-medium">

@@ -11,6 +11,13 @@ class Profile(models.Model):
     following = models.ManyToManyField('self', symmetrical=False, related_name='followers', blank=True)
     country = models.CharField(max_length=100, default='India', blank=True)
     timezone = models.CharField(max_length=50, blank=True)
+    
+    # Trust Score Engine (Reputation System)
+    trust_weight = models.FloatField(default=1.0)
+    lifetime_agreements = models.IntegerField(default=0)
+    lifetime_disagreements = models.IntegerField(default=0)
+    voting_diversity = models.JSONField(default=dict, blank=True)
+    is_echo_chamber_penalized = models.BooleanField(default=False)
 
     def __str__(self):
         return f"{self.user.username}'s profile"
@@ -52,6 +59,55 @@ class News(models.Model):
     video = models.FileField(upload_to='news_videos/', null=True, blank=True)
     hashtags = models.ManyToManyField(Hashtag, related_name='news_posts', blank=True)
     tagged_users = models.ManyToManyField(User, related_name='tagged_in_news', blank=True)
+
+    # Trust & AI Bias System
+    ai_factual_tone = models.IntegerField(default=0)  # 0-100 Sensationalism/Factual
+    ai_emotional_tone = models.IntegerField(default=0) # 0-100 Emotional Polarity
+    is_ai_analyzed = models.BooleanField(default=False)
+    is_frozen_by_brigading = models.BooleanField(default=False)
+
+    def get_trust_score(self):
+        """Returns the weighted consensus trust percentage based on user TrustVotes."""
+        votes = self.trust_votes.all()
+        if not votes.exists():
+            return 0
+        
+        # Calculate weighted sum
+        total_weight = sum(v.user.profile.trust_weight for v in votes)
+        if total_weight == 0:
+            return 0
+            
+        verifications = votes.filter(vote_type='verify')
+        verified_weight = sum(v.user.profile.trust_weight for v in verifications)
+        
+        return int((verified_weight / total_weight) * 100)
+
+    def get_top_dispute_reason(self):
+        """Returns the most common dispute reason if more than 30% weighted votes are disputes."""
+        votes = self.trust_votes.all()
+        if not votes.exists():
+            return None
+            
+        total_weight = sum(v.user.profile.trust_weight for v in votes)
+        if total_weight == 0:
+            return None
+            
+        disputes = votes.filter(vote_type='dispute')
+        disputed_weight = sum(v.user.profile.trust_weight for v in disputes)
+        
+        if disputed_weight / total_weight >= 0.3:
+            # Aggregate weights by reason
+            reasons = {}
+            for dispute in disputes:
+                reasons[dispute.dispute_reason] = reasons.get(dispute.dispute_reason, 0) + dispute.user.profile.trust_weight
+                
+            if reasons:
+                # Get the reason with the highest combined weight
+                top_reason_key = max(reasons, key=reasons.get)
+                if top_reason_key != 'none':
+                    reason_dict = dict(TrustVote.REASON_CHOICES)
+                    return reason_dict.get(top_reason_key, 'Disputed')
+        return None
 
     def __str__(self):
         return self.title
@@ -133,6 +189,9 @@ class Share(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     shared_at = models.DateTimeField(auto_now_add=True)
 
+    class Meta:
+        unique_together = ('news', 'user')
+
     def __str__(self):
         return f"{self.user.username} shared {self.news.title}"
 
@@ -186,3 +245,77 @@ class UserInterest(models.Model):
         verbose_name = 'User Interest'
         verbose_name_plural = 'User Interests'
 
+
+class ExternalNews(models.Model):
+    """Stores a reference to an external API-fetched article once a user interacts with it."""
+    url = models.URLField(unique=True, max_length=2000)
+    title = models.CharField(max_length=500)
+    description = models.TextField(blank=True, default='')
+    image = models.URLField(max_length=2000, blank=True, default='')
+    source = models.CharField(max_length=200, blank=True, default='')
+    published_at = models.CharField(max_length=50, blank=True, default='')
+
+    # Social
+    likes = models.ManyToManyField(User, related_name='liked_external', blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.title[:80]
+
+    class Meta:
+        verbose_name = 'External News'
+        verbose_name_plural = 'External News'
+
+
+class ExternalShare(models.Model):
+    """Tracks reshares of external news articles."""
+    news = models.ForeignKey(ExternalNews, on_delete=models.CASCADE, related_name='shares')
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    shared_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('news', 'user')
+
+    def __str__(self):
+        return f"{self.user.username} reshared external: {self.news.title[:40]}"
+
+
+class ExternalComment(models.Model):
+    """Comments on external news articles."""
+    news = models.ForeignKey(ExternalNews, on_delete=models.CASCADE, related_name='comments')
+    author = models.ForeignKey(User, on_delete=models.CASCADE)
+    content = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.author.username}: {self.content[:50]}"
+
+
+class TrustVote(models.Model):
+    """Stores user trust verification or disputes for a news post."""
+    VOTE_CHOICES = (
+        ('verify', 'Verify'),
+        ('dispute', 'Dispute'),
+    )
+    REASON_CHOICES = (
+        ('misleading_title', 'Misleading Title'),
+        ('altered_image', 'Altered Image'),
+        ('outdated_news', 'Outdated News'),
+        ('missing_context', 'Missing Context'),
+        ('none', 'None'),
+    )
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    news = models.ForeignKey(News, on_delete=models.CASCADE, related_name='trust_votes')
+    vote_type = models.CharField(max_length=10, choices=VOTE_CHOICES)
+    dispute_reason = models.CharField(max_length=20, choices=REASON_CHOICES, default='none')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('user', 'news')
+
+    def __str__(self):
+        return f"{self.user.username} voted {self.vote_type} on {self.news.id}"

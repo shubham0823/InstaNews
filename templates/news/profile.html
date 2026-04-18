@@ -94,9 +94,9 @@
                         <i class="far fa-comment"></i>
                         <span>{{ news.comments.count }}</span>
                     </div>
-                    <div class="flex items-center space-x-1">
-                        <i class="far fa-share-square"></i>
-                        <span>{{ news.shares.count }}</span>
+                    <div class="flex items-center space-x-1 cursor-pointer hover:text-green-500 transition-colors share-btn" data-news-id="{{ news.pk }}" title="Reshare">
+                        <i class="fas fa-retweet"></i>
+                        <span class="shares-count">{{ news.shares.count }}</span>
                     </div>
                 </div>
             </div>

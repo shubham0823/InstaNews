@@ -129,6 +129,52 @@
         </div>
         {% endif %}
     </div>
+    
+    <!-- Reshared News Section -->
+    <div class="mt-12">
+        <h2 class="text-xl font-bold text-gray-900 mb-6 flex items-center"><i class="fas fa-retweet text-green-500 mr-2"></i> Reshared News</h2>
+        {% if reshared_news %}
+        <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {% for news in reshared_news %}
+            <div class="bg-white rounded-lg shadow-md overflow-hidden border-t-4 border-green-500 relative">
+                <!-- Reshared Badge -->
+                <div class="absolute top-2 right-2 bg-green-500 text-white text-xs font-bold px-2 py-1 rounded-md z-10 shadow-sm opacity-90">
+                    <i class="fas fa-retweet mr-1"></i> Reshared
+                </div>
+                
+                {% if news.images.first %}
+                <img src="{{ news.images.first.image.url }}" alt="{{ news.title }}"
+                     class="w-full h-48 object-cover opacity-90 hover:opacity-100 transition-opacity">
+                {% endif %}
+                <div class="p-6">
+                    <h3 class="text-lg font-semibold text-gray-900">
+                        <a href="{% url 'news:news_detail' news.id %}" class="hover:text-blue-600">
+                            {{ news.title }}
+                        </a>
+                    </h3>
+                    <p class="mt-2 text-gray-600 line-clamp-3">{{ news.content }}</p>
+                    
+                    <div class="mt-4 flex items-center justify-between border-t border-gray-100 pt-4">
+                        <div class="flex items-center space-x-2">
+                            <img src="{{ news.author.profile.avatar.url }}" alt="{{ news.author.username }}" class="w-6 h-6 rounded-full border border-gray-200">
+                            <span class="text-xs font-semibold text-gray-700">@{{ news.author.username }}</span>
+                        </div>
+                        <div class="flex items-center space-x-3 text-xs text-gray-500">
+                            <span class="flex items-center"><i class="fas fa-heart mr-1"></i>{{ news.likes.count }}</span>
+                            <span class="flex items-center"><i class="fas fa-comment mr-1"></i>{{ news.comments.count }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="text-center py-8 bg-gray-50 rounded-lg border border-dashed border-gray-300">
+            <i class="fas fa-retweet text-3xl text-gray-300 mb-3 block"></i>
+            <p class="text-gray-500 text-sm">{{ profile_user.username }} hasn't reshared any news yet.</p>
+        </div>
+        {% endif %}
+    </div>
 </div>
 
 {% endblock %}

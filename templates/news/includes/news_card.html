@@ -43,12 +43,39 @@
 
             <div class="p-5">
                 <!-- Title -->
-                <h2 class="text-xl font-extrabold mb-2 text-gray-900 dark:text-white leading-tight">
+                <h2 class="text-xl font-extrabold mb-3 text-gray-900 dark:text-white leading-tight">
                     <a href="{% url 'news:news_detail' news.pk %}"
                         class="hover:text-blue-600 transition-colors duration-200">
                         {{ news.title }}
                     </a>
                 </h2>
+
+                <!-- AI Bias Meter -->
+                {% if news.is_ai_analyzed %}
+                <div class="mb-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg p-2.5 border border-gray-100 dark:border-gray-700/50 relative group">
+                    <div class="flex justify-between items-center mb-1.5">
+                        <span class="text-xs font-bold text-gray-700 dark:text-gray-300 flex items-center">
+                            <svg class="w-3.5 h-3.5 mr-1 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                            AI Tone Analysis
+                        </span>
+                        <div class="flex space-x-3 text-[10px] font-semibold">
+                            <span class="text-green-600 dark:text-green-400">{{ news.ai_factual_tone }}% Factual</span>
+                            <span class="text-orange-500 dark:text-orange-400">{{ news.ai_emotional_tone }}% Emotional</span>
+                        </div>
+                    </div>
+                    <!-- Progress Bar -->
+                    <div class="w-full h-1.5 bg-orange-200 dark:bg-orange-900/30 rounded-full overflow-hidden flex">
+                        <div class="h-full bg-green-500 relative" style="width: {{ news.ai_factual_tone }}%"></div>
+                        <div class="h-full bg-orange-500 relative" style="width: {{ news.ai_emotional_tone }}%"></div>
+                    </div>
+                    
+                    <!-- Tooltip -->
+                    <div class="absolute z-10 w-48 p-2 mt-1 text-xs text-center text-white bg-gray-900 rounded-md opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-200 bottom-full left-1/2 transform -translate-x-1/2 -translate-y-1 shadow-lg border border-gray-700">
+                        This AI only measures emotional language and sensationalism, not factual accuracy.
+                        <div class="absolute top-full left-1/2 transform -translate-x-1/2 -mt-1 border-4 border-transparent border-t-gray-900"></div>
+                    </div>
+                </div>
+                {% endif %}
 
                 <!-- Content snippet -->
                 <p class="text-gray-600 dark:text-gray-300 mb-4 text-sm leading-relaxed line-clamp-3">
@@ -92,14 +119,10 @@
                             <span class="font-bold text-sm">{{ news.comments.count }}</span>
                         </a>
                         
-                        <button
-                            class="share-btn flex items-center space-x-1.5 text-gray-500 hover:text-green-500 dark:text-gray-400 dark:hover:text-green-400 transition-colors duration-200 group"
-                            data-news-id="{{ news.pk }}">
-                            <div class="p-1.5 rounded-full group-hover:bg-green-50 dark:group-hover:bg-green-900/20 transition-colors">
-                                <i class="far fa-share-square text-base"></i>
-                            </div>
-                            <span class="shares-count font-bold text-sm">{{ news.shares.count }}</span>
-                        </button>
+                        <div class="flex items-center text-gray-500 hover:text-green-500 transition-colors cursor-pointer share-btn" data-news-id="{{ news.pk }}" title="Reshare">
+                            <i class="fas fa-retweet text-base"></i>
+                            <span class="ml-1.5 text-sm font-medium shares-count">{{ news.shares.count }}</span>
+                        </div>
                     </div>
                     
                     <a href="{% url 'news:news_detail' news.pk %}"

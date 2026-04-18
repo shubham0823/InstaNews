@@ -1,0 +1,237 @@
+<script>
+    // Global Reshare & External News Social functionality
+    document.addEventListener('DOMContentLoaded', function() {
+        function getCsrfToken() {
+            const meta = document.querySelector('meta[name="csrf-token"]');
+            if (meta) return meta.content;
+            const name = 'csrftoken';
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        // ============================
+        // User-Created News: Reshare
+        // ============================
+        function handleReshare(btn) {
+            const newsId = btn.dataset.newsId;
+            if (!newsId || btn.dataset.loading === 'true') return;
+            btn.dataset.loading = 'true';
+
+            fetch(`/news/${newsId}/share/`, {
+                method: 'POST',
+                headers: { 'X-CSRFToken': getCsrfToken() },
+            })
+            .then(r => r.json())
+            .then(data => {
+                const countEl = btn.querySelector('.shares-count, #sharesCount');
+                if (countEl) countEl.textContent = data.shares_count;
+                btn.classList.add('text-green-500');
+                const icon = btn.querySelector('i');
+                if (icon) {
+                    icon.classList.add('text-green-500');
+                    icon.style.transition = 'transform 0.3s ease';
+                    icon.style.transform = 'rotate(360deg)';
+                    setTimeout(() => icon.style.transform = '', 300);
+                }
+            })
+            .catch(err => console.error('Reshare failed:', err))
+            .finally(() => btn.dataset.loading = 'false');
+        }
+
+        // Bind to all local share buttons (static + dynamic via delegation)
+        document.querySelectorAll('.share-btn, #shareButton').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                handleReshare(this);
+            });
+        });
+
+        // ============================
+        // External News: Social
+        // ============================
+        function getExtArticleData(card) {
+            return {
+                url: card.dataset.extUrl,
+                title: card.dataset.extTitle,
+                image: card.dataset.extImage || '',
+                source: card.dataset.extSource || '',
+                description: card.dataset.extDesc || '',
+                published_at: card.dataset.extPublished || '',
+            };
+        }
+
+        function initExtCards() {
+            document.querySelectorAll('.ext-news-card').forEach(card => {
+                if (card.dataset.extInitialized) return;
+                card.dataset.extInitialized = 'true';
+
+                const url = card.dataset.extUrl;
+                if (!url) return;
+
+                // Fetch current counts
+                fetch(`/api/external/counts/?url=${encodeURIComponent(url)}`)
+                    .then(r => r.json())
+                    .then(data => {
+                        const likesEl = card.querySelector('.ext-likes-count');
+                        const sharesEl = card.querySelector('.ext-shares-count');
+                        const commentsEl = card.querySelector('.ext-comments-count');
+                        const commentLink = card.querySelector('.ext-comment-link');
+
+                        if (likesEl) likesEl.textContent = data.likes;
+                        if (sharesEl) sharesEl.textContent = data.shares;
+                        if (commentsEl) commentsEl.textContent = data.comments;
+
+                        // Update like icon if already liked
+                        if (data.liked) {
+                            const likeBtn = card.querySelector('.ext-like-btn');
+                            if (likeBtn) {
+                                likeBtn.classList.add('text-red-500');
+                                const icon = likeBtn.querySelector('i');
+                                if (icon) icon.classList.replace('far', 'fas');
+                            }
+                        }
+                        if (data.shared) {
+                            const shareBtn = card.querySelector('.ext-share-btn');
+                            if (shareBtn) shareBtn.classList.add('text-green-500');
+                        }
+
+                        // Set comment link to detail page if pk exists
+                        if (commentLink && data.pk) {
+                            commentLink.href = `/news/external/${data.pk}/#comments`;
+                        }
+                    })
+                    .catch(() => {}); // Silently fail for initial load
+
+                // Like button
+                const likeBtn = card.querySelector('.ext-like-btn');
+                if (likeBtn) {
+                    likeBtn.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        const articleData = getExtArticleData(card);
+                        fetch('/api/external/like/', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRFToken': getCsrfToken()
+                            },
+                            body: JSON.stringify(articleData)
+                        })
+                        .then(r => r.json())
+                        .then(data => {
+                            const countEl = card.querySelector('.ext-likes-count');
+                            if (countEl) countEl.textContent = data.likes_count;
+                            const icon = this.querySelector('i');
+                            if (data.liked) {
+                                this.classList.add('text-red-500');
+                                if (icon) icon.classList.replace('far', 'fas');
+                            } else {
+                                this.classList.remove('text-red-500');
+                                if (icon) icon.classList.replace('fas', 'far');
+                            }
+
+                            // Update comment link with pk
+                            const commentLink = card.querySelector('.ext-comment-link');
+                            if (commentLink) {
+                                fetch(`/api/external/counts/?url=${encodeURIComponent(articleData.url)}`)
+                                    .then(r => r.json())
+                                    .then(d => {
+                                        if (d.pk) commentLink.href = `/news/external/${d.pk}/#comments`;
+                                    });
+                            }
+                        });
+                    });
+                }
+
+                // Share button
+                const shareBtn = card.querySelector('.ext-share-btn');
+                if (shareBtn) {
+                    shareBtn.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        fetch('/api/external/reshare/', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRFToken': getCsrfToken()
+                            },
+                            body: JSON.stringify(getExtArticleData(card))
+                        })
+                        .then(r => r.json())
+                        .then(data => {
+                            const countEl = card.querySelector('.ext-shares-count');
+                            if (countEl) countEl.textContent = data.shares_count;
+                            this.classList.add('text-green-500');
+                            const icon = this.querySelector('i');
+                            if (icon) {
+                                icon.style.transition = 'transform 0.3s';
+                                icon.style.transform = 'rotate(360deg)';
+                                setTimeout(() => icon.style.transform = '', 300);
+                            }
+                        });
+                    });
+                }
+
+                // Comment link — create article on first interaction if needed
+                const commentLink = card.querySelector('.ext-comment-link');
+                if (commentLink && commentLink.getAttribute('href') === '#') {
+                    commentLink.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        // Create the external news record via like API (will auto-create), then redirect
+                        fetch('/api/external/reshare/', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRFToken': getCsrfToken()
+                            },
+                            body: JSON.stringify(getExtArticleData(card))
+                        })
+                        .then(r => r.json())
+                        .then(() => {
+                            // Get the pk and redirect
+                            fetch(`/api/external/counts/?url=${encodeURIComponent(card.dataset.extUrl)}`)
+                                .then(r => r.json())
+                                .then(d => {
+                                    if (d.pk) {
+                                        window.location.href = `/news/external/${d.pk}/#comments`;
+                                    }
+                                });
+                        });
+                    });
+                }
+            });
+        }
+
+        // Init on load
+        initExtCards();
+
+        // Re-init after AJAX content loads (for infinite scroll pages)
+        const observer = new MutationObserver(() => initExtCards());
+        const grid = document.querySelector('#news-grid, #external-news-grid, #world-news-container, #indian-news-container');
+        if (grid) {
+            observer.observe(grid, { childList: true, subtree: true });
+        }
+
+        // Global delegation for dynamically added share buttons
+        document.addEventListener('click', function(e) {
+            const shareBtn = e.target.closest('.share-btn:not([data-ext-url]), #shareButton');
+            if (shareBtn && !shareBtn.closest('.ext-news-card')) {
+                e.preventDefault();
+                e.stopPropagation();
+                handleReshare(shareBtn);
+            }
+        });
+    });
+</script>
